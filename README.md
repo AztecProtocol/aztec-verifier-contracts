@@ -12,15 +12,9 @@ The UltraPlonok Verifier follows the same structure as the Standard Plonk verifi
 
 ## Generating Verification Keys and Proofs
 
-To regenerate keys + proofs:
+Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg and download SRS.
 
-```
-cd generate_vks
-mkdir build && cd build
-cmake ..
-cmake --build . --parallel
-./src/generate_keys_and_proofs
-```
+To regenerate keys + proofs, run `generate_vks_and_proofs.sh`.
 
 # How To Run Test?
 
@@ -47,10 +41,3 @@ Example to run only `testWithProofOnly` for the Standard verifier with full logs
 ```bash
 forge test --match-contract StandardTest --match-test testWithProofOnly -vvvv
 ```
-
----
-
-# TODO's:
-
-- [ ] BaseStandardVerifier
-  - [ ] The public inputs hash is computed in earlier stages in our rollup, but not part of the verifier contract. Consider refactoring it to be more generic here.
