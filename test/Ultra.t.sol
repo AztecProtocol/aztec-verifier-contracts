@@ -2,18 +2,18 @@
 pragma solidity ^0.8.13;
 
 import {TestBase} from "./TestBase.sol";
-import {StandardVerifier} from "../src/standard/instance/StandardVerifier.sol";
+import {UltraVerifier} from "../src/standard/instance/UltraVerifier.sol";
 
-contract StandardTest is TestBase {
-    StandardVerifier public verifier;
+contract UltraTest is TestBase {
+    UltraVerifier public verifier;
 
     function setUp() public {
         // Deploy the verifier contract
-        verifier = new StandardVerifier();
+        verifier = new UltraVerifier();
     }
 
-    function testWithProofOnly() public {
-        string memory path = "data/standard/StandardProof.dat";
+    function testUltraProof() public {
+        string memory path = "data/standard/UltraProof.dat";
         // string memory path = "data/standard/standard_proof.dat";
         // Read the proof bytes directly, no need for extra parsing
         // bytes memory proof = vm.readFileBinary(path);

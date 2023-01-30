@@ -145,19 +145,19 @@ abstract contract BaseStandardVerifier {
      * @param - public input hash as computed from the broadcast data
      * @return True if proof is valid, reverts otherwise
      */
-    function verify(bytes calldata, uint256 public_inputs_hash) external view returns (bool) {
-        // validate the correctness of the public inputs hash
-        {
-            bool hash_matches_input;
-            uint256 recovered_hash;
-            assembly {
-                recovered_hash := calldataload(add(calldataload(0x04), 0x24))
-                hash_matches_input := eq(recovered_hash, public_inputs_hash)
-            }
-            if (!hash_matches_input) {
-                revert PUBLIC_INPUTS_HASH_VERIFICATION_FAILED(public_inputs_hash, recovered_hash);
-            }
-        }
+    function verify(bytes calldata) external view returns (bool) {
+        // // validate the correctness of the public inputs hash
+        // {
+        //     bool hash_matches_input;
+        //     uint256 recovered_hash;
+        //     assembly {
+        //         recovered_hash := calldataload(add(calldataload(0x04), 0x24))
+        //         hash_matches_input := eq(recovered_hash, public_inputs_hash)
+        //     }
+        //     if (!hash_matches_input) {
+        //         revert PUBLIC_INPUTS_HASH_VERIFICATION_FAILED(public_inputs_hash, recovered_hash);
+        //     }
+        // }
 
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
 

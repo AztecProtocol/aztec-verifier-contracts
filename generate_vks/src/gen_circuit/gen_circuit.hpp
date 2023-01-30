@@ -15,7 +15,7 @@ public:
     static Composer generate()
     {
         // todo use proper srs?
-        Composer composer;
+        Composer composer("../../barretenberg/cpp/srs_db/ignition");
 
         byte_array_ct input_buffer(&composer);
         for (size_t i = 0; i < NUM_PUBLIC_INPUTS; ++i)

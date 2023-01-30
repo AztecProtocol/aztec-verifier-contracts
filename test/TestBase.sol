@@ -5,17 +5,43 @@ pragma solidity >=0.8.4;
 import {Test} from "forge-std/Test.sol";
 
 contract TestBase is Test {
+    function readProofData(string memory path)
+        internal
+        
+        returns (bytes memory)
+    {
+        // format [4 byte length][data]
+        // Reads the raw bytes
+        bytes memory rawBytes = vm.readFileBinary(path);
+
+        // Extract the [data], which contains proof and the rollup data that is hashed into the input hash.
+        bytes memory proofData = new bytes(rawBytes.length - 4); //
+        assembly {
+            let length := shr(224, mload(add(rawBytes, 0x20)))
+
+            let wLoc := add(proofData, 0x20)
+            let rLoc := add(rawBytes, 0x24)
+            let end := add(rLoc, length)
+
+            for {} lt(rLoc, end) {
+                wLoc := add(wLoc, 0x20)
+                rLoc := add(rLoc, 0x20)
+            } { mstore(wLoc, mload(rLoc)) }
+        }
+        return proofData;
+    }
+
     function readRollupProofData(string memory path)
         internal
         view
         returns (bytes memory, bytes memory, uint256 inputHash, bool expectedResult)
     {
-        // format [4 byte length][data][1 byte flag for expected validity]
+        // format [4 byte length][data]
         // Reads the raw bytes
         bytes memory rawBytes = vm.readFileBinary(path);
 
         // Extract the [data], which contains proof and the rollup data that is hashed into the input hash.
-        bytes memory proofData = new bytes(rawBytes.length - 5); //
+        bytes memory proofData = new bytes(rawBytes.length - 4); //
         assembly {
             let length := shr(224, mload(add(rawBytes, 0x20)))
 
