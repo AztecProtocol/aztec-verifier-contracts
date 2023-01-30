@@ -1,10 +1,10 @@
 add_executable(
-    test_main
+    generate_keys_and_proofs
     main.cpp
 )
 
 target_link_libraries(
-    test_main
+    generate_keys_and_proofs
     PRIVATE
     barretenberg
     env

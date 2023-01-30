@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {TestBase} from "./TestBase.sol";
-import {UltraVerifier} from "../src/standard/instance/UltraVerifier.sol";
+import {UltraVerifier} from "../src/ultra/instance/UltraVerifier.sol";
 
 contract UltraTest is TestBase {
     UltraVerifier public verifier;
@@ -13,7 +13,7 @@ contract UltraTest is TestBase {
     }
 
     function testUltraProof() public {
-        string memory path = "data/standard/UltraProof.dat";
+        string memory path = "data/ultra/UltraProof.dat";
         // string memory path = "data/standard/standard_proof.dat";
         // Read the proof bytes directly, no need for extra parsing
         // bytes memory proof = vm.readFileBinary(path);
