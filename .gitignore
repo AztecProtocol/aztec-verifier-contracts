@@ -10,3 +10,6 @@ out/
 # Dotenv file
 .env
 .vscode/settings.json
+
+# Foundry, until I learn how to make submodule work
+.foundry/
