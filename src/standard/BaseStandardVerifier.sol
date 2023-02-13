@@ -125,14 +125,13 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR = 0xeba9f4a6;
     bytes4 internal constant PUBLIC_INPUT_GE_P_SELECTOR = 0x374a972f;
     bytes4 internal constant MOD_EXP_FAILURE_SELECTOR = 0xf894a7bc;
-    bytes4 internal constant EC_SCALAR_MUL_FAILURE_SELECTOR = 0xf755f369;
+    bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
-    error PUBLIC_INPUTS_HASH_VERIFICATION_FAILED(uint256, uint256);
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
     error MOD_EXP_FAILURE();
-    error EC_SCALAR_MUL_FAILURE();
+    error PAIRING_PREAMBLE_FAILURE();
     error PROOF_FAILURE();
 
     function getVerificationKeyHash() public pure virtual returns (bytes32);
@@ -146,19 +145,6 @@ abstract contract BaseStandardVerifier {
      * @return True if proof is valid, reverts otherwise
      */
     function verify(bytes calldata) external view returns (bool) {
-        // // validate the correctness of the public inputs hash
-        // {
-        //     bool hash_matches_input;
-        //     uint256 recovered_hash;
-        //     assembly {
-        //         recovered_hash := calldataload(add(calldataload(0x04), 0x24))
-        //         hash_matches_input := eq(recovered_hash, public_inputs_hash)
-        //     }
-        //     if (!hash_matches_input) {
-        //         revert PUBLIC_INPUTS_HASH_VERIFICATION_FAILED(public_inputs_hash, recovered_hash);
-        //     }
-        // }
-
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
 
         assembly {
@@ -989,7 +975,7 @@ abstract contract BaseStandardVerifier {
                 }
 
                 if iszero(success) {
-                    mstore(0x0, EC_SCALAR_MUL_FAILURE_SELECTOR)
+                    mstore(0x0, PAIRING_PREAMBLE_FAILURE_SELECTOR)
                     revert(0x00, 0x04)
                 }
                 mstore(PAIRING_PREAMBLE_SUCCESS_FLAG, success)

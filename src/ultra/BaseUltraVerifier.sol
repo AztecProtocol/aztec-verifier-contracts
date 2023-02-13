@@ -2,13 +2,12 @@
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
 // gas cost at 5000 optimizer runs 0.8.10: 287,589 (includes 21,000 base cost)
-import {TestBase} from "../../test/TestBase.sol";
 
 /**
  * @title Ultra Plonk proof verification contract
  * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
  */
-abstract contract BaseUltraVerifier is TestBase {
+abstract contract BaseUltraVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
     uint256 internal constant N_LOC = 0x380;
     uint256 internal constant NUM_INPUTS_LOC = 0x3a0;
