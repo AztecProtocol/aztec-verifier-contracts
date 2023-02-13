@@ -1,14 +1,14 @@
 # Aztec Verifier Contract Test
 
-This repository will contain different verifier contracts that are to be used by Noir. The repository is in its infancy, but will hold verifier implementations and some test proofs. 
+This repository contains multiple verifier contracts and testing harnesses that are used by [Noir, our Zero-Knowledge Programming Language](https://github.com/noir-lang/noir).
 
-The implementations strive to follow the same interface and architecture across different implementations, making is as "plug-and-play" as possible for Noir. 
+The implementations maintain the same interface, regardless of the verifier flavour (Standard, Turbo, Ultra), this should enable upstream implementations to be "plug-and-play".
 
-The verifier will follow an overall architecture as seen below, consisting of 3 contracts/libraries. Namely, the verifier algorithm (stable across circuits), the verification key (circuit dependent) and then the "verifier instance" which is a base that reads from the verification key and uses the values in the verification algorithm. Design done like this as we can then easily generate a fresh verification key for our circuits and plug it into a verifier that uses a general verification algorithm.
+The verifier will follow an overall architecture below, consisting of 3 contracts/libraries. Namely, the verifier algorithm (stable across circuits), the verification key (circuit dependent) and then the "verifier instance", a base that reads from the verification key and uses the key's values in the verification algorithm. The main advantage of this design is that we can generate verification key's per circuit and plug them into a general verification algorithm.
 
 ![Verifier architecture](./figures/verifier.png)
 
-The verification key is currently generated using [Barretenberg](https://github.com/AztecProtocol/barretenberg/blob/master/cpp/src/aztec/proof_system/verification_key/sol_gen.hpp), Aztecs backend for generating proofs. 
+The verification key is currently generated via [Barretenberg](https://github.com/AztecProtocol/barretenberg/blob/master/cpp/src/aztec/proof_system/verification_key/sol_gen.hpp), Aztec's backend for generating proofs.
 
 ## Current implementations
 
@@ -16,11 +16,11 @@ The verification key is currently generated using [Barretenberg](https://github.
 
 A verifier for standard plonk, the version of plonk that is used to run the [Aztec Connect](https://aztec.network/connect/) rollup.
 
-The contracts are in the `src/standard` directory. 
+The contracts are in the `src/standard` directory.
 
 ### UltraPlonk Verifier
 
-The UltraPlonk Verifier follows the same structure as the Standard Plonk verifier, under the `src/ultra` directory
+The UltraPlonk Verifier follows the same structure as the Standard Plonk verifier, under the `src/ultra` directory.
 
 ## Generating Verification Keys and Proofs
 
@@ -28,14 +28,13 @@ Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg and download 
 
 To regenerate keys + proofs, run `generate_vks_and_proofs.sh`. This generates keys and proofs for both the standard and ultra plonk setups. Proof are stored in `data/<version>`.
 
-
 # Tests
 
-Test are done with a `TestBase` contract which provides a helper for reading the file and printing proofs etc. The test require that proofs and verification keys are generated so please run `generate_vks_and_proofs.sh` before trying to run the tests. 
+Test are performed with a `TestBase` harness, it provides helpers for reading files and printing proofs. The tests also require proofs and verification keys. To generate please run `generate_vks_and_proofs.sh` running the tests.
 
-## How To Run Test?
+## How To Run the Tests?
 
-To run all test, at the root of the repo, run:
+To run all tests, run the following scripts at the root of the repo:
 
 ```bash
 forge test # add -(v, vv, vvv, vvvv) for verbosity of logs, no logs emitted as default
