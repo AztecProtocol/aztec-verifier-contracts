@@ -5,7 +5,7 @@ pragma solidity >=0.8.4;
 import {Test} from "forge-std/Test.sol";
 
 contract TestBase is Test {
-    function readProofData(string memory path) internal returns (bytes memory) {
+    function readProofData(string memory path) internal view returns (bytes memory) {
         // format [4 byte length][data]
         // Reads the raw bytes
         bytes memory rawBytes = vm.readFileBinary(path);
