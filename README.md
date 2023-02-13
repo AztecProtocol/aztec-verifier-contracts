@@ -8,7 +8,7 @@ The Standard Plonk Verifier is split into 3 contract. There is a Base, which con
 
 ## UltraPlonk Verifier
 
-The UltraPlonok Verifier follows the same structure as the Standard Plonk verifier, under the `src/ultra` directory
+The UltraPlonk Verifier follows the same structure as the Standard Plonk verifier, under the `src/ultra` directory
 
 ## Generating Verification Keys and Proofs
 

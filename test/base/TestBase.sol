@@ -5,16 +5,12 @@ pragma solidity >=0.8.4;
 import {Test} from "forge-std/Test.sol";
 
 contract TestBase is Test {
-    function readProofData(string memory path)
-        internal
-        
-        returns (bytes memory)
-    {
+    function readProofData(string memory path) internal returns (bytes memory) {
         // format [4 byte length][data]
         // Reads the raw bytes
         bytes memory rawBytes = vm.readFileBinary(path);
 
-        // Extract the [data], which contains proof and the rollup data that is hashed into the input hash.
+        // Extract the [data], contains inputs and proof
         bytes memory proofData = new bytes(rawBytes.length - 4); //
         assembly {
             let length := shr(224, mload(add(rawBytes, 0x20)))
@@ -29,53 +25,6 @@ contract TestBase is Test {
             } { mstore(wLoc, mload(rLoc)) }
         }
         return proofData;
-    }
-
-    function readRollupProofData(string memory path)
-        internal
-        view
-        returns (bytes memory, bytes memory, uint256 inputHash, bool expectedResult)
-    {
-        // format [4 byte length][data]
-        // Reads the raw bytes
-        bytes memory rawBytes = vm.readFileBinary(path);
-
-        // Extract the [data], which contains proof and the rollup data that is hashed into the input hash.
-        bytes memory proofData = new bytes(rawBytes.length - 4); //
-        assembly {
-            let length := shr(224, mload(add(rawBytes, 0x20)))
-
-            let wLoc := add(proofData, 0x20)
-            let rLoc := add(rawBytes, 0x24)
-            let end := add(rLoc, length)
-
-            for {} lt(rLoc, end) {
-                wLoc := add(wLoc, 0x20)
-                rLoc := add(rLoc, 0x20)
-            } { mstore(wLoc, mload(rLoc)) }
-        }
-
-        // TODO: This one probably changes for ultra plonk?
-        // Extracts the proof itself. Length is taken from standard plonk
-        // So it should probably differ for ultra plonk
-        uint256 proofLen = 0x20 * (24 + 17);
-        bytes memory proof = new bytes(proofLen);
-
-        //
-        assembly {
-            let length := shr(224, mload(add(rawBytes, 0x20)))
-            let start := sub(length, proofLen)
-            let readLoc := add(rawBytes, add(0x24, start))
-
-            mstore(add(proof, 0x20), mload(readLoc))
-            for { let offset := 0x00 } lt(offset, proofLen) {
-                offset := add(offset, 0x20)
-                readLoc := add(readLoc, 0x20)
-            } { mstore(add(0x20, add(proof, offset)), mload(readLoc)) }
-            inputHash := mload(add(proof, 0x20))
-        }
-
-        return (proofData, proof, inputHash, rawBytes[rawBytes.length - 1] == 0x01);
     }
 
     function printBytes(bytes memory _data, uint256 _offset) internal {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {TestBase} from "./TestBase.sol";
+import {TestBase} from "./base/TestBase.sol";
 import {UltraVerifier} from "../src/ultra/instance/UltraVerifier.sol";
 
 contract UltraTest is TestBase {
@@ -18,7 +18,7 @@ contract UltraTest is TestBase {
         // Read the proof bytes directly, no need for extra parsing
         // bytes memory proof = vm.readFileBinary(path);
         // bytes memory rawBytes = vm.readFileBinary(path);
-        
+
         // Extract the [data], which contains proof and the rollup data that is hashed into the input hash.
         // bytes memory proofData = new bytes(rawBytes.length - 5); //
 
