@@ -105,7 +105,7 @@ is TestBase
         bytes memory proof = readProofData(outpath);
         
         // Remove the generated proof file
-        cleanup(path_randomiser);
+        cleanup(outpath);
         
         // TOOD: There might not need to be any path related stuff if we can output the proof to std out
         return proof;
