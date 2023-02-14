@@ -6,11 +6,20 @@ import {TestBase} from "./base/TestBase.sol";
 import {StandardVerifier} from "../src/standard/instance/StandardVerifier.sol";
 import {BaseStandardVerifier} from "../src/standard/BaseStandardVerifier.sol";
 
+import {FuzzConfig} from "./base/FuzzConfig.sol";
+
 contract StandardTest is TestBase {
     StandardVerifier public verifier;
 
     function setUp() public {
         verifier = new StandardVerifier();
+    }
+
+    function testFuzzProof() public {
+        bytes memory proof = new FuzzConfig().with_flavour(FuzzConfig.PlonkFlavour.Standard).generate_proof();
+
+
+        verifier.verify(proof);
     }
 
     function testValidProof() public {
