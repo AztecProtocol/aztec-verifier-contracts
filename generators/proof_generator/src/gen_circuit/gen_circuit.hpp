@@ -2,6 +2,8 @@
 #include <stdlib/primitives/witness/witness.hpp>
 #include <stdlib/hash/blake2s/blake2s.hpp>
 
+using numeric::uint256_t;
+
 template <typename Composer>
 class GenCircuit
 {
@@ -13,10 +15,10 @@ public:
     // TODO: this should become an input to the circuit
     static constexpr size_t NUM_PUBLIC_INPUTS = 4;
 
-    static Composer generate(uint128_t public_inputs[])
+    static Composer generate(std::string srs_path, uint256_t public_inputs[])
     {
         // todo use proper srs?
-        Composer composer("../../../barretenberg/cpp/srs_db/ignition");
+        Composer composer(srs_path);
 
         byte_array_ct input_buffer(&composer);
         for (size_t i = 0; i < NUM_PUBLIC_INPUTS; ++i)

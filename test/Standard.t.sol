@@ -18,10 +18,11 @@ contract StandardTest is TestBase {
     }
 
     function testFuzzProof(
-        uint16 input1,
-        uint16 input2,
-        uint16 input3
+        uint256 input1,
+        uint256 input2,
+        uint256 input3
     ) public {
+
         // TODO: move flavour to constructor
         uint256[] memory public_inputs = new uint256[](3);
         public_inputs[0] = input1;
@@ -37,12 +38,12 @@ contract StandardTest is TestBase {
     }
 
     function testValidProof() public {
-        bytes memory proof = readProofData("data/standard/StandardProof.dat");
+        bytes memory proof = new DifferentialFuzzer().with_flavour(flavour).generate_proof();
         assertTrue(verifier.verify(proof), "The proof is not valid");
     }
 
     function testProofFailure() public {
-        bytes memory proof = readProofData("data/standard/StandardProof.dat");
+        bytes memory proof = new DifferentialFuzzer().with_flavour(flavour).generate_proof();
 
         assembly {
             let where := add(add(proof, 0x20), mul(0x20, 2))
@@ -63,7 +64,7 @@ contract StandardTest is TestBase {
     }
 
     function _testVerifierInvalidBn128Component(uint256 _offset) internal {
-        bytes memory proof = readProofData("data/standard/StandardProof.dat");
+        bytes memory proof = new DifferentialFuzzer().with_flavour(flavour).generate_proof();
 
         {
             uint256 q = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
@@ -81,7 +82,7 @@ contract StandardTest is TestBase {
     }
 
     function testPublicInputsNotInP(uint256 _offset) public {
-        bytes memory proof = readProofData("data/standard/StandardProof.dat");
+        bytes memory proof = new DifferentialFuzzer().with_flavour(flavour).generate_proof();
         printBytes(proof, 0x00);
 
         uint256 toReplace = bound(_offset, 0, 3);
@@ -98,7 +99,7 @@ contract StandardTest is TestBase {
         verifier.verify(proof);
     }
 
-    function testPublicRecursiveInputsNotInP(uint256 _offset) public {
+    function _testPublicRecursiveInputsNotInP(uint256 _offset) public {
         // The last 68 bit limb in each point (except the last, as that is check in another testLastPublicInputNotInP)
         revert("To be implemented");
     }
