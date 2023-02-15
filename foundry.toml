@@ -5,7 +5,6 @@ libs = ['lib']
 
 # Need permission to read files
 fs_permissions = [
-    { access = "read", path = "./data/"},
     {access = "read", path = "data/standard/StandardProof.dat"},
     {access = "read", path = "data/ultra/UltraProof.dat"}
 ]

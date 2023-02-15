@@ -6,18 +6,32 @@ import {TestBase} from "./base/TestBase.sol";
 import {StandardVerifier} from "../src/standard/instance/StandardVerifier.sol";
 import {BaseStandardVerifier} from "../src/standard/BaseStandardVerifier.sol";
 
-import {FuzzConfig} from "./base/FuzzConfig.sol";
+import {DifferentialFuzzer} from "./base/DifferentialFuzzer.sol";
 
 contract StandardTest is TestBase {
     StandardVerifier public verifier;
+    DifferentialFuzzer.PlonkFlavour public flavour;
 
     function setUp() public {
         verifier = new StandardVerifier();
+        flavour = DifferentialFuzzer.PlonkFlavour.Standard;
     }
 
-    function testFuzzProof() public {
-        bytes memory proof = new FuzzConfig().with_flavour(FuzzConfig.PlonkFlavour.Standard).generate_proof();
+    function testFuzzProof(
+        uint16 input1,
+        uint16 input2,
+        uint16 input3
+    ) public {
+        // TODO: move flavour to constructor
+        uint256[] memory public_inputs = new uint256[](3);
+        public_inputs[0] = input1;
+        public_inputs[1] = input2;
+        public_inputs[2] = input3;
 
+        bytes memory proof = new DifferentialFuzzer()
+            .with_flavour(flavour)
+            .with_public_inputs(public_inputs)
+            .generate_proof();
 
         verifier.verify(proof);
     }

@@ -13,7 +13,7 @@ public:
     // TODO: this should become an input to the circuit
     static constexpr size_t NUM_PUBLIC_INPUTS = 4;
 
-    static Composer generate(uint64_t public_inputs[])
+    static Composer generate(uint128_t public_inputs[])
     {
         // todo use proper srs?
         Composer composer("../../../barretenberg/cpp/srs_db/ignition");
