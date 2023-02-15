@@ -33,7 +33,7 @@ jobs:
       - name: Build cpp
         run: |
           sudo apt update
-          sudo apt install clang-10 lld-10 libomp-dev libboost-tools-dev libboost-thread1.62-dev magics++
+          sudo apt install clang-10 lld-10 libomp-dev libboost-tools-dev
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100
           sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-10 100
