@@ -30,6 +30,17 @@ jobs:
           forge build --sizes
         id: build
 
+      - name: Build cpp
+        run: |
+          sudo apt update
+          sudo apt install clang-10 lld-10 libomp-dev
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100
+          sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-10 100
+
+      - name: Build cpp
+        run: ./bootstrap.sh
+
       - name: Run Forge tests
         run: |
           forge test -vvv
