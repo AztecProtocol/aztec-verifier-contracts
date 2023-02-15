@@ -32,7 +32,6 @@ jobs:
 
       - name: Build cpp
         run: |
-          echo "deb http://cz.archive.ubuntu.com/ubuntu eoan main universe" | sudo tee -a  /etc/apt/sources.list
           sudo apt update
           sudo apt install build-essential clang-10 lld-10 libomp-dev libboost-tools-dev libtbb-dev
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100
