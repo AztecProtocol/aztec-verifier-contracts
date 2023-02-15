@@ -10,7 +10,8 @@ template <typename Composer>
 void generate_keys(std::string output_vk_path, std::string srs_path, std::string flavour_prefix)
 {
 
-    Composer composer = GenCircuit<Composer>::generate();
+    uint256_t public_inputs[4] = {0, 0, 0, 0};
+    Composer composer = GenCircuit<Composer>::generate(srs_path, public_inputs);
 
     std::shared_ptr<waffle::verification_key> vkey = composer.compute_verification_key();
 

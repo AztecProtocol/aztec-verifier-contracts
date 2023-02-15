@@ -7,10 +7,7 @@ mkdir -p ./data
 mkdir -p ./data/standard
 mkdir -p ./data/ultra
 
-# Generate circuit verification keys
-echo "Generating circuit verification keys..."
-./scripts/init_vks.sh
 
-# Build the proof generator
+# Build the proof generator and init vks
 echo "Building proof generator..."
 ./scripts/build_proof_generator.sh

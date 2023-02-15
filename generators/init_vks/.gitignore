@@ -1,5 +1,0 @@
-.cache/
-build*/
-# to be unignored when we agree on clang-tidy rules
-.clangd
-.vscode/*.code-workspace

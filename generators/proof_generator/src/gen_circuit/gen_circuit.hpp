@@ -16,7 +16,7 @@ public:
     static constexpr size_t NUM_PUBLIC_INPUTS = 4;
 
     static Composer generate(std::string srs_path, uint256_t public_inputs[])
-    {
+    {   
         // todo use proper srs?
         Composer composer(srs_path);
 
