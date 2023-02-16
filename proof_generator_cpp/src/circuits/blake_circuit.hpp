@@ -5,7 +5,7 @@
 using numeric::uint256_t;
 
 template <typename Composer>
-class GenCircuit
+class BlakeCircuit
 {
 public:
     typedef plonk::stdlib::field_t<Composer> field_ct;

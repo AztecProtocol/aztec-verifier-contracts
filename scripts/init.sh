@@ -1,8 +1,8 @@
 #!/bin/bash
-cd generators/proof_generator
+cd proof_generator_cpp
 mkdir -p build && cd build
 
-cmake -DISABLE_TBB=ON ..
+cmake ..
 cmake --build . --parallel
 
 # Build verification key contracts

@@ -5,33 +5,17 @@
 #include <plonk/composer/ultra_composer.hpp>
 #include <plonk/proof_system/verification_key/sol_gen.hpp>
 
-#include "gen_circuit/gen_circuit.hpp"
+#include "circuits/blake_circuit.hpp"
+// #include "circuits/add_2_circuit.hpp"
+#include "utils/utils.hpp"
 
 using namespace numeric;
 using numeric::uint256_t;
 
-std::string bytes_to_hex_string(const std::vector<uint8_t> &input)
+template <typename Composer, typename Circuit>
+void generate_blake_proof(std::string srs_path, uint256_t public_inputs[])
 {
-  static const char characters[] = "0123456789ABCDEF";
-
-  // Zeroes out the buffer unnecessarily, can't be avoided for std::string.
-  std::string ret(input.size() * 2, 0);
-  
-  // Hack... Against the rules but avoids copying the whole buffer.
-  auto buf = const_cast<char *>(ret.data());
-  
-  for (const auto &oneInputByte : input)
-  {
-    *buf++ = characters[oneInputByte >> 4];
-    *buf++ = characters[oneInputByte & 0x0F];
-  }
-  return ret;
-}
-
-template <typename Composer>
-void generate_proof(std::string srs_path, uint256_t public_inputs[])
-{
-    Composer composer = GenCircuit<Composer>::generate(srs_path, public_inputs);
+    Composer composer = Circuit::generate(srs_path, public_inputs);
     
     std::shared_ptr<waffle::proving_key> pkey = composer.compute_proving_key();
     std::shared_ptr<waffle::verification_key> vkey = composer.compute_verification_key();
@@ -54,18 +38,20 @@ std::string pad_left(std::string input, size_t length) {
 
 /**
  * @brief Main entry point for the proof generator.
+ * expected inputs 
+ * 1. proof_flavour: standard, ultra
+ * 2. circuit_flavour: blake, add2
+ * 3. public_inputs: comma separated list of public inputs
+ * 4. project_root_path: path to the solidity project root
+ * 5. srs_path: path to the srs db
 */
 int main(int argc, char **argv)
 {   
     std::vector<std::string> args(argv, argv + argc);
-    // if (args.size() < 3)
-    // {
-    //     info(
-    //         "usage: ", args[0], "[flavour] [hash_input] [path to project root] [srs path]");
-    //     return 1;
-    // }
-
+    
     const std::string proof_flavour = (args.size() > 1) ? args[1] : "standard";
+    const std::string circuit_flavour = (args.size() > 2) ? args[2] : "blake";
+
     // comma separated list of public hash inputs
     const std::string string_input = (args.size() > 2) ? args[2] : "1,2,3,4";
 
@@ -90,16 +76,16 @@ int main(int argc, char **argv)
     uint256_t last_uint256 = uint256_t(padded);
     public_inputs[count] = last_uint256;
 
-    const std::string project_root_path = (args.size() > 3) ? args[3] : "../../..";
-    const std::string srs_path = (args.size() > 4) ? args[4] : "../../../barretenberg/cpp/srs_db/ignition";
+    const std::string project_root_path = (args.size() > 3) ? args[3] : DEFAULT_PROJECT_ROOT_PATH;
+    const std::string srs_path = (args.size() > 4) ? args[4] : DEFAULT_SRS_PATH;
 
     if (proof_flavour == "standard")
     {
-        generate_proof<waffle::StandardComposer>(srs_path, public_inputs);
+        generate_blake_proof<waffle::StandardComposer, BlakeCircuit<waffle::StandardComposer>>(srs_path, public_inputs);
     }
     else if (proof_flavour == "ultra")
     {
-        generate_proof<waffle::UltraComposer>(srs_path, public_inputs);
+        generate_blake_proof<waffle::UltraComposer, BlakeCircuit<waffle::UltraComposer>>(srs_path, public_inputs);
     }
     else
     {
