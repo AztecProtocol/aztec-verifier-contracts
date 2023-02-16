@@ -38,6 +38,13 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100
           sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-10 100
 
+      - name: Cache Barretenberg
+        uses: actions/cache@v3
+        id: cache_cpp
+        with:
+          path: barretenberg/cpp
+          key: ${{ runner.os }}-${{ hashFiles(barretenberg/cpp/*) }}
+
       - name: Build cpp
         run: ./bootstrap.sh
 
