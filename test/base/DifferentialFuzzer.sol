@@ -8,24 +8,24 @@ contract DifferentialFuzzer is TestBase {
     using strings for *;
     using Strings for uint256;
 
-    enum PlonkFlavour {
-        Standard,
-        Turbo,
-        Ultra
-    }
+    enum PlonkFlavour{Standard, Turbo, Ultra}
+    enum CircuitFlavour{Blake, Add2, Recursive}
 
     // Vm public constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
 
     constructor() {}
 
     /// @notice the fuzzing flavour
-    PlonkFlavour public flavour;
+    PlonkFlavour public plonkFlavour;
+
+    /// @notice the circuit flavour
+    CircuitFlavour public circuitFlavour;
 
     /// @notice the proofs public inputs
     uint256[] public public_inputs;
 
     function with_flavour(PlonkFlavour _flavour) public returns (DifferentialFuzzer) {
-        flavour = _flavour;
+        plonkFlavour = _flavour;
         return this;
     }
 
@@ -34,15 +34,27 @@ contract DifferentialFuzzer is TestBase {
         return this;
     }
 
-    function get_flavour() internal view returns (string memory) {
-        if (flavour == PlonkFlavour.Standard) {
+    function get_plonk_flavour() internal view returns (string memory) {
+        if (plonkFlavour == PlonkFlavour.Standard) {
             return "standard";
-        } else if (flavour == PlonkFlavour.Turbo) {
+        } else if (plonkFlavour == PlonkFlavour.Turbo) {
             return "turbo";
-        } else if (flavour == PlonkFlavour.Ultra) {
+        } else if (plonkFlavour == PlonkFlavour.Ultra) {
             return "ultra";
         } else {
             revert("Invalid flavour");
+        }
+    }
+
+    function get_circuit_flavour() internal view returns (string memory) {
+        if (circuitFlavour == CircuitFlavour.Blake) {
+            return "blake";
+        } else if (circuitFlavour == CircuitFlavour.Add2) {
+            return "add2";
+        } else if (circuitFlavour == CircuitFlavour.Recursive) {
+            return "recursive";
+        } else {
+            revert("Invalid circuit flavour");
         }
     }
 
@@ -60,14 +72,16 @@ contract DifferentialFuzzer is TestBase {
     function generate_proof() public returns (bytes memory proof) {
         // Craft an ffi call to the prover binary
         string memory prover_path = "./scripts/run_fuzzer.sh";
-        string memory _flavour = get_flavour();
+        string memory plonk_flavour = get_plonk_flavour();
+        string memory circuit_flavour = get_circuit_flavour();
         string memory public_input_params = get_public_inputs();
 
         // Execute the c++ prover binary
-        string[] memory ffi_cmds = new string[](3);
+        string[] memory ffi_cmds = new string[](4);
         ffi_cmds[0] = prover_path;
-        ffi_cmds[1] = _flavour;
-        ffi_cmds[2] = public_input_params;
+        ffi_cmds[1] = plonk_flavour;
+        ffi_cmds[2] = circuit_flavour;
+        ffi_cmds[3] = public_input_params;
 
         proof = vm.ffi(ffi_cmds);
     }

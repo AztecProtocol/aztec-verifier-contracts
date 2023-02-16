@@ -19,11 +19,18 @@ contract StandardTest is TestBase {
         fuzzer = new DifferentialFuzzer().with_flavour(DifferentialFuzzer.PlonkFlavour.Standard);
     }
 
-    function testFuzzProof(uint256 input1, uint256 input2, uint256 input3) public {
-        uint256[] memory public_inputs = new uint256[](3);
+    function testFuzzProof(
+        uint256 input1,
+        uint256 input2,
+        uint256 input3,
+        uint256 input4
+    ) public {
+
+        uint256[] memory public_inputs = new uint256[](4);
         public_inputs[0] = input1;
         public_inputs[1] = input2;
         public_inputs[2] = input3;
+        public_inputs[3] = input4;
 
         bytes memory proofData = fuzzer.with_public_inputs(public_inputs).generate_proof();
         (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);

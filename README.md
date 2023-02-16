@@ -26,7 +26,7 @@ The UltraPlonk Verifier follows the same structure as the Standard Plonk verifie
 
 Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg and download SRS.
 
-To regenerate keys + proofs, run `generate_vks_and_proofs.sh`. This generates keys and proofs for both the standard and ultra plonk setups. Proof are stored in `data/<version>`.
+To regenerate keys + proofs, run `./scripts/init.sh`. This generates keys and proofs for both the standard and ultra plonk setups.
 
 # Tests
 
