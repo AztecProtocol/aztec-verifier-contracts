@@ -43,7 +43,7 @@ jobs:
         id: cache_cpp
         with:
           path: barretenberg/cpp
-          key: ${{ runner.os }}-${{ hashFiles(barretenberg/cpp/*) }}
+          key: ${{ runner.os }}-${{ hashFiles('barretenberg/cpp/*') }}
 
       - name: Build cpp
         run: ./bootstrap.sh
