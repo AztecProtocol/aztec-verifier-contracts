@@ -7,10 +7,4 @@ ffi = true
 [fuzz]
 runs = 5
 
-# Need permission to read files
-fs_permissions = [
-    {access = "read", path = "data/standard/StandardProof.dat"},
-    {access = "read", path = "data/ultra/UltraProof.dat"}
-]
-
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
