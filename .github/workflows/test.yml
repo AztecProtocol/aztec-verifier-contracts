@@ -1,6 +1,8 @@
 name: test
 
-on: workflow_dispatch
+on:
+  - workflow_dispatch
+  - push
 
 env:
   FOUNDRY_PROFILE: ci
@@ -11,7 +13,7 @@ jobs:
       fail-fast: true
 
     name: Foundry project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -27,6 +29,24 @@ jobs:
           forge --version
           forge build --sizes
         id: build
+
+      - name: Build cpp
+        run: |
+          sudo apt update
+          sudo apt install build-essential clang-10 lld-10 libomp-dev libboost-tools-dev libtbb-dev
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100
+          sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-10 100
+
+      - name: Cache Barretenberg
+        uses: actions/cache@v3
+        id: cache_cpp
+        with:
+          path: barretenberg/cpp
+          key: ${{ runner.os }}-${{ hashFiles('barretenberg/cpp/*') }}
+
+      - name: Build cpp
+        run: ./bootstrap.sh
 
       - name: Run Forge tests
         run: |

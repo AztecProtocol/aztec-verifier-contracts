@@ -6,3 +6,10 @@
 	path = barretenberg
 	url = git@github.com:AztecProtocol/barretenberg.git
     branch = zw/ultra-changes-for-noir
+[submodule "lib/solidity-stringutils"]
+	path = lib/solidity-stringutils
+	url = https://github.com/Arachnid/solidity-stringutils
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+	branch = v4.8.1
