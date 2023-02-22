@@ -12,6 +12,8 @@ contract StandardTest is TestBase {
     StandardVerifier public verifier;
     DifferentialFuzzer public fuzzer;
 
+    uint256 public constant PUBLIC_INPUT_COUNT = 4;
+
     function setUp() public {
         verifier = new StandardVerifier();
         fuzzer = new DifferentialFuzzer().with_flavour(DifferentialFuzzer.PlonkFlavour.Standard);
@@ -24,19 +26,19 @@ contract StandardTest is TestBase {
         public_inputs[2] = input3;
 
         bytes memory proofData = fuzzer.with_public_inputs(public_inputs).generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
         assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 
     function testValidProof() public {
         bytes memory proofData = fuzzer.generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
         assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 
     function testProofFailure() public {
         bytes memory proofData = fuzzer.generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
 
         assembly {
             let where := add(add(proof, 0x20), mul(0x20, 2))
@@ -58,7 +60,7 @@ contract StandardTest is TestBase {
 
     function _testVerifierInvalidBn128Component(uint256 _offset) internal {
         bytes memory proofData = fuzzer.generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
 
         {
             uint256 q = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
@@ -77,7 +79,7 @@ contract StandardTest is TestBase {
 
     function testPublicInputsNotInP(uint256 _offset) public {
         bytes memory proofData = fuzzer.generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
 
         uint256 toReplace = bound(_offset, 0, publicInputs.length - 1);
         uint256 p = 21888242871839275222246405745257275088548364400416034343698204186575808495617;

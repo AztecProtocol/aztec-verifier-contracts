@@ -150,20 +150,6 @@ abstract contract BaseStandardVerifier {
     function loadVerificationKey(uint256 _vk, uint256 _omegaInverseLoc) internal pure virtual;
 
     /**
-     * @notice Get the number of public inputs required by the verification key
-     * @dev If made internal, this will mess with memory
-     * @return count The number of public inputs
-     */
-    function getPublicInputCount() external pure virtual returns (uint256 count) {
-        uint256 loc = 0x20;
-        loadVerificationKey(loc, 0x20);
-        assembly {
-            count := mload(add(loc, 0x20))
-        }
-        return count;
-    }
-
-    /**
      * @notice Verify a Standard Plonk proof
      * @param _proof - The serialized proof
      * @param _publicInputs - An array of the public inputs
@@ -226,7 +212,7 @@ abstract contract BaseStandardVerifier {
                     // @todo Add a test with recursive proofs to ensure that new formatting is still compatible
 
                     let public_inputs_ptr := add(calldataload(0x24), 0x24)
-                    let index_counter := add(mul(mload(RECURSIVE_PROOF_PUBLIC_INPUT_INDICES_LOC), 32), public_inputs_ptr)
+                    let index_counter := add(shl(mload(RECURSIVE_PROOF_PUBLIC_INPUT_INDICES_LOC), 5), public_inputs_ptr)
 
                     // Loads the recursive proof into memory.
                     // Each coordinate consist of 4 chunks of 68 bits, but take up 4 words in the proof.

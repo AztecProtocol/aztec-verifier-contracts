@@ -32,7 +32,7 @@ contract TestBase is Test {
 
     function splitProof(bytes memory _proofData, uint256 _numberOfPublicInputs)
         internal
-        pure
+        view
         returns (bytes32[] memory publicInputs, bytes memory proof)
     {
         publicInputs = new bytes32[](_numberOfPublicInputs);
@@ -42,15 +42,13 @@ contract TestBase is Test {
         }
 
         proof = new bytes(_proofData.length - (_numberOfPublicInputs * 0x20));
+        uint256 len = proof.length;
         assembly {
-            let wLoc := add(proof, 0x20)
-            let rLoc := add(_proofData, add(0x20, mul(0x20, _numberOfPublicInputs)))
-            let end := add(rLoc, mload(proof))
-
-            for {} lt(rLoc, end) {
-                wLoc := add(wLoc, 0x20)
-                rLoc := add(rLoc, 0x20)
-            } { mstore(wLoc, mload(rLoc)) }
+            pop(
+                staticcall(
+                    gas(), 0x4, add(_proofData, add(0x20, mul(0x20, _numberOfPublicInputs))), len, add(proof, 0x20), len
+                )
+            )
         }
     }
 
