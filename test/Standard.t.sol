@@ -23,17 +23,20 @@ contract StandardTest is TestBase {
         public_inputs[1] = input2;
         public_inputs[2] = input3;
 
-        bytes memory proof = fuzzer.with_public_inputs(public_inputs).generate_proof();
-        assertTrue(verifier.verify(proof), "The proof is not valid");
+        bytes memory proofData = fuzzer.with_public_inputs(public_inputs).generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 
     function testValidProof() public {
-        bytes memory proof = fuzzer.generate_proof();
-        assertTrue(verifier.verify(proof), "The proof is not valid");
+        bytes memory proofData = fuzzer.generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
+        assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 
     function testProofFailure() public {
-        bytes memory proof = fuzzer.generate_proof();
+        bytes memory proofData = fuzzer.generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
 
         assembly {
             let where := add(add(proof, 0x20), mul(0x20, 2))
@@ -41,7 +44,7 @@ contract StandardTest is TestBase {
         }
 
         vm.expectRevert(abi.encodeWithSelector(BaseStandardVerifier.PROOF_FAILURE.selector));
-        verifier.verify(proof);
+        verifier.verify(proof, publicInputs);
     }
 
     function _testVerifierInvalidBn128G1() public {
@@ -54,7 +57,8 @@ contract StandardTest is TestBase {
     }
 
     function _testVerifierInvalidBn128Component(uint256 _offset) internal {
-        bytes memory proof = fuzzer.generate_proof();
+        bytes memory proofData = fuzzer.generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
 
         {
             uint256 q = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
@@ -68,25 +72,19 @@ contract StandardTest is TestBase {
         }
 
         vm.expectRevert(BaseStandardVerifier.PUBLIC_INPUT_INVALID_BN128_G1_POINT.selector);
-        verifier.verify(proof);
+        verifier.verify(proof, publicInputs);
     }
 
     function testPublicInputsNotInP(uint256 _offset) public {
-        bytes memory proof = fuzzer.generate_proof();
-        printBytes(proof, 0x00);
+        bytes memory proofData = fuzzer.generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, verifier.getPublicInputCount());
 
-        uint256 toReplace = bound(_offset, 0, 3);
-
+        uint256 toReplace = bound(_offset, 0, publicInputs.length - 1);
         uint256 p = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-        assembly {
-            let start := add(proof, 0x20)
-            let offset := mul(toReplace, 0x20)
-            let loc := add(start, offset)
-            mstore(loc, p)
-        }
+        publicInputs[toReplace] = bytes32(p);
 
         vm.expectRevert(BaseStandardVerifier.PUBLIC_INPUT_GE_P.selector);
-        verifier.verify(proof);
+        verifier.verify(proof, publicInputs);
     }
 
     function _testPublicRecursiveInputsNotInP(uint256 _offset) public {

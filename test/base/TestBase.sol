@@ -3,8 +3,11 @@
 pragma solidity >=0.8.4;
 
 import {Test} from "forge-std/Test.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TestBase is Test {
+    using Strings for uint256;
+
     function readProofData(string memory path) internal view returns (bytes memory) {
         // format [4 byte length][data]
         // Reads the raw bytes
@@ -27,6 +30,30 @@ contract TestBase is Test {
         return proofData;
     }
 
+    function splitProof(bytes memory _proofData, uint256 _numberOfPublicInputs)
+        internal
+        pure
+        returns (bytes32[] memory publicInputs, bytes memory proof)
+    {
+        publicInputs = new bytes32[](_numberOfPublicInputs);
+        for (uint256 i = 0; i < _numberOfPublicInputs; i++) {
+            // The proofs spit out by barretenberg have the public inputs at the beginning
+            publicInputs[i] = readWordByIndex(_proofData, i);
+        }
+
+        proof = new bytes(_proofData.length - (_numberOfPublicInputs * 0x20));
+        assembly {
+            let wLoc := add(proof, 0x20)
+            let rLoc := add(_proofData, add(0x20, mul(0x20, _numberOfPublicInputs)))
+            let end := add(rLoc, mload(proof))
+
+            for {} lt(rLoc, end) {
+                wLoc := add(wLoc, 0x20)
+                rLoc := add(rLoc, 0x20)
+            } { mstore(wLoc, mload(rLoc)) }
+        }
+    }
+
     function printBytes(bytes memory _data, uint256 _offset) internal {
         uint256 length = _data.length - _offset;
         for (uint256 i = 0; i < length / 0x20; i++) {
@@ -35,6 +62,12 @@ contract TestBase is Test {
                 val := mload(add(_offset, add(_data, mul(0x20, add(1, i)))))
             }
             emit log_named_bytes32(toHexString(bytes32(i * 0x20)), val);
+        }
+    }
+
+    function printList(bytes32[] memory _data, uint256 _offset) internal {
+        for (uint256 i = _offset; i < _data.length; i++) {
+            emit log_named_bytes32(i.toString(), _data[i]);
         }
     }
 
