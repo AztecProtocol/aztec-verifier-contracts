@@ -49,7 +49,6 @@ contract DifferentialFuzzer is TestBase {
     // Encode public inputs as a comma seperated string for the ffi call
     function get_public_inputs() internal view returns (string memory public_input_params) {
         public_input_params = "";
-        console.log("public_inputs.length: %s", public_inputs.length);
         if (public_inputs.length > 0) {
             public_input_params = public_inputs[0].toString();
             for (uint256 i = 1; i < public_inputs.length; i++) {

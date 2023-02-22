@@ -128,67 +128,55 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
+    error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
     error MOD_EXP_FAILURE();
     error PAIRING_PREAMBLE_FAILURE();
     error PROOF_FAILURE();
 
+    /**
+     * @notice Get the verification key hash
+     * @dev To be implemented in the child contract
+     * @return hash The verification key hash
+     */
     function getVerificationKeyHash() public pure virtual returns (bytes32);
 
-    function loadVerificationKey(uint256 vk, uint256 _omegaInverseLoc) internal pure virtual;
+    /**
+     * @notice Load the verification key into memory
+     * @dev To be implemented in the child contract
+     * @param _vk - The memory location to store the verification key
+     */
+    function loadVerificationKey(uint256 _vk, uint256 _omegaInverseLoc) internal pure virtual;
 
     /**
-     * @dev Verify a Plonk proof
-     * @param - array of serialized proof data
-     * @param - public input hash as computed from the broadcast data
+     * @notice Verify a Standard Plonk proof
+     * @param _proof - The serialized proof
+     * @param _publicInputs - An array of the public inputs
      * @return True if proof is valid, reverts otherwise
      */
-    function verify(bytes calldata) external view returns (bool) {
+    function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
+
+        uint256 requiredPublicInputCount;
+        assembly {
+            requiredPublicInputCount := mload(NUM_INPUTS_LOC)
+        }
+        if (requiredPublicInputCount != _publicInputs.length) {
+            revert PUBLIC_INPUT_COUNT_INVALID(requiredPublicInputCount, _publicInputs.length);
+        }
 
         assembly {
             let q := 21888242871839275222246405745257275088696311157297823662689037894645226208583 // EC group order
             let p := 21888242871839275222246405745257275088548364400416034343698204186575808495617 // Prime field order
 
             /**
-             * LOAD PROOF FROM CALLDATA
+             * LOAD PROOF INTO MEMORY
              */
             {
+                // calldataload(0x04) is the offset of the proof = 0x40
+                // We add 0x24 to skip the selector + the length of the proof
                 let data_ptr := add(calldataload(0x04), 0x24)
-                if mload(CONTAINS_RECURSIVE_PROOF_LOC) {
-                    let index_counter := add(mul(mload(RECURSIVE_PROOF_PUBLIC_INPUT_INDICES_LOC), 32), data_ptr)
-
-                    let x0 := calldataload(index_counter)
-                    x0 := add(x0, shl(68, calldataload(add(index_counter, 0x20))))
-                    x0 := add(x0, shl(136, calldataload(add(index_counter, 0x40))))
-                    x0 := add(x0, shl(204, calldataload(add(index_counter, 0x60))))
-                    let y0 := calldataload(add(index_counter, 0x80))
-                    y0 := add(y0, shl(68, calldataload(add(index_counter, 0xa0))))
-                    y0 := add(y0, shl(136, calldataload(add(index_counter, 0xc0))))
-                    y0 := add(y0, shl(204, calldataload(add(index_counter, 0xe0))))
-                    let x1 := calldataload(add(index_counter, 0x100))
-                    x1 := add(x1, shl(68, calldataload(add(index_counter, 0x120))))
-                    x1 := add(x1, shl(136, calldataload(add(index_counter, 0x140))))
-                    x1 := add(x1, shl(204, calldataload(add(index_counter, 0x160))))
-                    let y1 := calldataload(add(index_counter, 0x180))
-                    y1 := add(y1, shl(68, calldataload(add(index_counter, 0x1a0))))
-                    y1 := add(y1, shl(136, calldataload(add(index_counter, 0x1c0))))
-                    y1 := add(y1, shl(204, calldataload(add(index_counter, 0x1e0))))
-                    mstore(RECURSIVE_P1_X_LOC, x0)
-                    mstore(RECURSIVE_P1_Y_LOC, y0)
-                    mstore(RECURSIVE_P2_X_LOC, x1)
-                    mstore(RECURSIVE_P2_Y_LOC, y1)
-
-                    // validate these are valid bn128 G1 points
-                    if iszero(and(and(lt(x0, q), lt(x1, q)), and(lt(y0, q), lt(y1, q)))) {
-                        mstore(0x00, PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
-                }
-
-                let public_input_byte_length := mul(mload(NUM_INPUTS_LOC), 32)
-                data_ptr := add(data_ptr, public_input_byte_length)
 
                 mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q))
                 mstore(W1_Y_LOC, mod(calldataload(data_ptr), q))
@@ -216,6 +204,50 @@ abstract contract BaseStandardVerifier {
                 mstore(PI_Z_OMEGA_Y_LOC, mod(calldataload(add(data_ptr, 0x2c0)), q))
             }
 
+            /**
+             * LOAD RECURSIVE PROOF INTO MEMORY
+             */
+            {
+                if mload(CONTAINS_RECURSIVE_PROOF_LOC) {
+                    // @todo Add a test with recursive proofs to ensure that new formatting is still compatible
+
+                    let public_inputs_ptr := add(calldataload(0x24), 0x24)
+                    let index_counter := add(shl(mload(RECURSIVE_PROOF_PUBLIC_INPUT_INDICES_LOC), 5), public_inputs_ptr)
+
+                    // Loads the recursive proof into memory.
+                    // Each coordinate consist of 4 chunks of 68 bits, but take up 4 words in the proof.
+                    // While this might "waste" a bit of space on the contract side, it improves circuit efficiency
+
+                    let x0 := calldataload(index_counter)
+                    x0 := add(x0, shl(68, calldataload(add(index_counter, 0x20))))
+                    x0 := add(x0, shl(136, calldataload(add(index_counter, 0x40))))
+                    x0 := add(x0, shl(204, calldataload(add(index_counter, 0x60))))
+                    let y0 := calldataload(add(index_counter, 0x80))
+                    y0 := add(y0, shl(68, calldataload(add(index_counter, 0xa0))))
+                    y0 := add(y0, shl(136, calldataload(add(index_counter, 0xc0))))
+                    y0 := add(y0, shl(204, calldataload(add(index_counter, 0xe0))))
+                    let x1 := calldataload(add(index_counter, 0x100))
+                    x1 := add(x1, shl(68, calldataload(add(index_counter, 0x120))))
+                    x1 := add(x1, shl(136, calldataload(add(index_counter, 0x140))))
+                    x1 := add(x1, shl(204, calldataload(add(index_counter, 0x160))))
+                    let y1 := calldataload(add(index_counter, 0x180))
+                    y1 := add(y1, shl(68, calldataload(add(index_counter, 0x1a0))))
+                    y1 := add(y1, shl(136, calldataload(add(index_counter, 0x1c0))))
+                    y1 := add(y1, shl(204, calldataload(add(index_counter, 0x1e0))))
+                    // Store the recursive proof coordinates in memory
+                    mstore(RECURSIVE_P1_X_LOC, x0)
+                    mstore(RECURSIVE_P1_Y_LOC, y0)
+                    mstore(RECURSIVE_P2_X_LOC, x1)
+                    mstore(RECURSIVE_P2_Y_LOC, y1)
+
+                    // validate these are valid bn128 G1 points
+                    if iszero(and(and(lt(x0, q), lt(x1, q)), and(lt(y0, q), lt(y1, q)))) {
+                        mstore(0x00, PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR)
+                        revert(0x00, 0x04)
+                    }
+                }
+            }
+
             {
                 /**
                  * Generate initial challenge
@@ -230,11 +262,20 @@ abstract contract BaseStandardVerifier {
                  * Generate beta, gamma challenges
                  */
                 mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
-                let inputs_start := add(calldataload(0x04), 0x24)
-                let num_calldata_bytes := add(0xc0, mul(mload(NUM_INPUTS_LOC), 0x20))
-                calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), inputs_start, num_calldata_bytes)
+                // The public input location is stored at 0x24, we then add 0x24 to skip selector and the length of public inputs
+                let public_inputs_start := add(calldataload(0x24), 0x24)
+                // copy the public inputs over
+                let public_input_size := mul(mload(NUM_INPUTS_LOC), 0x20)
+                calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_inputs_start, public_input_size)
 
-                challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, add(num_calldata_bytes, 0x20))
+                // copy W1, W2, W3 into challenge. Each point is 0x40 bytes, so load 0xc0 = 3 * 0x40 bytes
+                let w_start := add(calldataload(0x04), 0x24)
+                calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), w_start, 0xc0)
+
+                // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
+                let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
+
+                challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, challenge_bytes_size)
 
                 mstore(C_BETA_LOC, mod(challenge, p))
 
@@ -290,7 +331,7 @@ abstract contract BaseStandardVerifier {
                 root_1 := mulmod(root_1, 0x05, p_clone) // k1.beta
                 root_2 := mulmod(root_2, 0x07, p_clone) // 0x05 + 0x07 = 0x0c = external coset generator
 
-                public_inputs := add(calldataload(0x04), 0x24)
+                public_inputs := add(calldataload(0x24), 0x24)
                 endpoint := add(endpoint, public_inputs)
 
                 for {} lt(public_inputs, endpoint) {} {
@@ -490,8 +531,6 @@ abstract contract BaseStandardVerifier {
                 let current_challenge := mload(C_CURRENT_LOC)
                 // get a calldata pointer that points to the start of the data we want to copy
                 let calldata_ptr := add(calldataload(0x04), 0x24)
-                // skip over the public inputs
-                calldata_ptr := add(calldata_ptr, mul(mload(NUM_INPUTS_LOC), 0x20))
                 // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
                 // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
                 calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
