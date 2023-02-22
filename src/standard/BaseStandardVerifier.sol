@@ -138,6 +138,16 @@ abstract contract BaseStandardVerifier {
 
     function loadVerificationKey(uint256 vk, uint256 _omegaInverseLoc) internal pure virtual;
 
+    function getPublicInputCount() external pure virtual returns (uint256 count) {
+        // don't make this internal, will fuck up your memory
+        uint256 loc = 0x20;
+        loadVerificationKey(loc, 0x20);
+        assembly {
+            count := mload(add(loc, 0x20))
+        }
+        return count;
+    }
+
     /**
      * @dev Verify a Plonk proof
      * @param - array of serialized proof data
