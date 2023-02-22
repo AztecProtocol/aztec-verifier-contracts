@@ -13,6 +13,8 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant NUM_INPUTS_LOC = 0x200 + 0x20;
     uint256 internal constant OMEGA_LOC = 0x200 + 0x40;
     uint256 internal constant DOMAIN_INVERSE_LOC = 0x200 + 0x60;
+    
+    /// 
     uint256 internal constant Q1_X_LOC = 0x200 + 0x80;
     uint256 internal constant Q1_Y_LOC = 0x200 + 0xa0;
     uint256 internal constant Q2_X_LOC = 0x200 + 0xc0;
@@ -23,6 +25,8 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant QM_Y_LOC = 0x200 + 0x160;
     uint256 internal constant QC_X_LOC = 0x200 + 0x180;
     uint256 internal constant QC_Y_LOC = 0x200 + 0x1a0;
+
+    /// These are for the copy constraints
     uint256 internal constant SIGMA1_X_LOC = 0x200 + 0x1c0;
     uint256 internal constant SIGMA1_Y_LOC = 0x200 + 0x1e0;
     uint256 internal constant SIGMA2_X_LOC = 0x200 + 0x200;
@@ -31,6 +35,8 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant SIGMA3_Y_LOC = 0x200 + 0x260;
     uint256 internal constant CONTAINS_RECURSIVE_PROOF_LOC = 0x200 + 0x280;
     uint256 internal constant RECURSIVE_PROOF_PUBLIC_INPUT_INDICES_LOC = 0x200 + 0x2a0;
+    
+    // Two generator points, used in pairings and come from the trusted setup
     uint256 internal constant G2X_X0_LOC = 0x200 + 0x2c0;
     uint256 internal constant G2X_X1_LOC = 0x200 + 0x2e0;
     uint256 internal constant G2X_Y0_LOC = 0x200 + 0x300;
@@ -38,12 +44,16 @@ abstract contract BaseStandardVerifier {
     // 26
 
     // ### PROOF DATA MEMORY LOCATIONS
+
+    // Wire evaluations
     uint256 internal constant W1_X_LOC = 0x200 + 0x340 + 0x00;
     uint256 internal constant W1_Y_LOC = 0x200 + 0x340 + 0x20;
     uint256 internal constant W2_X_LOC = 0x200 + 0x340 + 0x40;
     uint256 internal constant W2_Y_LOC = 0x200 + 0x340 + 0x60;
     uint256 internal constant W3_X_LOC = 0x200 + 0x340 + 0x80;
     uint256 internal constant W3_Y_LOC = 0x200 + 0x340 + 0xa0;
+    
+    //
     uint256 internal constant Z_X_LOC = 0x200 + 0x340 + 0xc0;
     uint256 internal constant Z_Y_LOC = 0x200 + 0x340 + 0xe0;
     uint256 internal constant T1_X_LOC = 0x200 + 0x340 + 0x100;
@@ -52,9 +62,13 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant T2_Y_LOC = 0x200 + 0x340 + 0x160;
     uint256 internal constant T3_X_LOC = 0x200 + 0x340 + 0x180;
     uint256 internal constant T3_Y_LOC = 0x200 + 0x340 + 0x1a0;
+
+    // Wire evaluations
     uint256 internal constant W1_EVAL_LOC = 0x200 + 0x340 + 0x1c0;
     uint256 internal constant W2_EVAL_LOC = 0x200 + 0x340 + 0x1e0;
     uint256 internal constant W3_EVAL_LOC = 0x200 + 0x340 + 0x200;
+    
+    // Copy constraint evaluations
     uint256 internal constant SIGMA1_EVAL_LOC = 0x200 + 0x340 + 0x220;
     uint256 internal constant SIGMA2_EVAL_LOC = 0x200 + 0x340 + 0x240;
     uint256 internal constant Z_OMEGA_EVAL_LOC = 0x200 + 0x340 + 0x260;
@@ -187,6 +201,7 @@ abstract contract BaseStandardVerifier {
                     }
                 }
 
+                // Just loads the proof data - leaving the public inputs where they are
                 let public_input_byte_length := mul(mload(NUM_INPUTS_LOC), 32)
                 data_ptr := add(data_ptr, public_input_byte_length)
 
@@ -222,6 +237,7 @@ abstract contract BaseStandardVerifier {
                  *
                  */
 
+                // BETA START
                 mstore(0x00, shl(224, mload(N_LOC)))
                 mstore(0x04, shl(224, mload(NUM_INPUTS_LOC)))
                 let challenge := keccak256(0x00, 0x08)
@@ -230,18 +246,26 @@ abstract contract BaseStandardVerifier {
                  * Generate beta, gamma challenges
                  */
                 mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
+                
+                // The beta challenege consists of all of the public inputs as well as the 
+                // curve points W1, W2 and W3
                 let inputs_start := add(calldataload(0x04), 0x24)
                 let num_calldata_bytes := add(0xc0, mul(mload(NUM_INPUTS_LOC), 0x20))
+
                 calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), inputs_start, num_calldata_bytes)
 
                 challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, add(num_calldata_bytes, 0x20))
 
                 mstore(C_BETA_LOC, mod(challenge, p))
 
+                // BETAEND
+
+                // GAMMA START
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
                 challenge := keccak256(0x00, 0x21)
                 mstore(C_GAMMA_LOC, mod(challenge, p))
+                // GAMMA END
 
                 /**
                  * Generate alpha challenge
@@ -251,6 +275,7 @@ abstract contract BaseStandardVerifier {
                 mstore(0x40, mload(Z_X_LOC))
                 challenge := keccak256(0x00, 0x60)
                 mstore(C_ALPHA_LOC, mod(challenge, p))
+
                 /**
                  * Generate zeta challenge
                  */
@@ -264,6 +289,9 @@ abstract contract BaseStandardVerifier {
                 challenge := keccak256(0x00, 0xe0)
 
                 mstore(C_ZETA_LOC, mod(challenge, p))
+                // Zeta challenge end
+
+                // Store existing challenge entroy in memory
                 mstore(C_CURRENT_LOC, challenge)
             }
 
