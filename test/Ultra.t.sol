@@ -22,12 +22,7 @@ contract UltraTest is TestBase {
         assertTrue(verifier.verify(proof));
     }
 
-    function testFuzzProof(
-        uint256 input1,
-        uint256 input2,
-        uint256 input3
-    ) public {
-
+    function testFuzzProof(uint256 input1, uint256 input2, uint256 input3) public {
         // TODO: move flavour to constructor
         uint256[] memory public_inputs = new uint256[](3);
         public_inputs[0] = input1;

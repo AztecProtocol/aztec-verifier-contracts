@@ -1,20 +1,22 @@
-
 import {Vm} from "forge-std/Vm.sol";
 import {strings} from "stringutils/strings.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TestBase} from "./TestBase.sol";
 import "forge-std/console.sol";
 
-contract DifferentialFuzzer is TestBase 
-{
+contract DifferentialFuzzer is TestBase {
     using strings for *;
     using Strings for uint256;
 
-    enum PlonkFlavour{Standard, Turbo, Ultra}
+    enum PlonkFlavour {
+        Standard,
+        Turbo,
+        Ultra
+    }
 
     // Vm public constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
 
-    constructor(){}
+    constructor() {}
 
     /// @notice the fuzzing flavour
     PlonkFlavour public flavour;
@@ -46,11 +48,11 @@ contract DifferentialFuzzer is TestBase
 
     // Encode public inputs as a comma seperated string for the ffi call
     function get_public_inputs() internal view returns (string memory public_input_params) {
-        public_input_params = ""; 
+        public_input_params = "";
         console.log("public_inputs.length: %s", public_inputs.length);
         if (public_inputs.length > 0) {
             public_input_params = public_inputs[0].toString();
-            for (uint256 i =1; i < public_inputs.length; i++) {
+            for (uint256 i = 1; i < public_inputs.length; i++) {
                 public_input_params = string.concat(public_input_params, ",", public_inputs[i].toString());
             }
         }
