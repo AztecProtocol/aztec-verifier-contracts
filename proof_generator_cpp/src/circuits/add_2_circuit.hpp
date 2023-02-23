@@ -14,6 +14,7 @@ public:
     typedef plonk::stdlib::witness_t<Composer> witness_ct;
     typedef plonk::stdlib::byte_array<Composer> byte_array_ct;
     typedef plonk::stdlib::bool_t<Composer> bool_ct;
+    typedef plonk::stdlib::uint32<Composer> uint32_ct;
 
     // Two public input, one private input
     static Composer generate(std::string srs_path, uint256_t inputs[])
@@ -22,10 +23,8 @@ public:
 
         Composer composer(srs_path);
 
-        byte_array_ct input_buffer(&composer);
-
-        field_ct a(witness_ct(&composer, inputs[0]));
-        field_ct b(public_witness_ct(&composer, inputs[1]));
+        uint32_ct a(witness_ct(&composer, inputs[0]));
+        uint32_ct b(public_witness_ct(&composer, inputs[1]));
         bool_ct r = (a + b) == public_witness_ct(&composer, inputs[2]);
         r.assert_equal(true);
 

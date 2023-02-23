@@ -25,7 +25,7 @@ contract Add2UltraTest is TestBaseUltra {
         fuzzer = fuzzer.with_inputs(defaultInputs);
     }
 
-    function testFuzzProof(uint128 input1, uint128 input2) public {
+    function testFuzzProof(uint16 input1, uint16 input2) public {
         uint256[] memory inputs = new uint256[](3);
         inputs[0] = uint256(input1);
         inputs[1] = uint256(input2);

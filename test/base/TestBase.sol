@@ -69,6 +69,12 @@ contract TestBase is Test {
         }
     }
 
+     function printList(uint256[] memory _data, uint256 _offset) internal {
+        for (uint256 i = _offset; i < _data.length; i++) {
+            emit log_named_bytes32(i.toString(), bytes32(_data[i]));
+        }
+    }
+
     function readWordByIndex(bytes memory _data, uint256 index) internal pure returns (bytes32 result) {
         assembly {
             result := mload(add(_data, add(0x20, mul(0x20, index))))

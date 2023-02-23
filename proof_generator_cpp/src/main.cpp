@@ -61,16 +61,19 @@ int main(int argc, char **argv)
     uint256_t inputs[] = {0,0,0,0,0};
 
     // equiv public_inputs = string_input.split(",")
-    // @note Ran into issues with the old way of splitting strings so I used this instead
+    // Ran into issues with the old way of splitting strings. Used this to get around edge cases
     std::vector<std::string> result;
     std::stringstream s_stream(string_input); //create string stream from the string
     while(s_stream.good()) {
-      std::string substr;
-      getline(s_stream, substr, ','); //get first string delimited by comma
-      result.push_back(substr);
+      std::string sub;
+      getline(s_stream, sub, ','); //get first string delimited by comma
+      if (sub.substr(0, 2) == "0x") {
+        sub = sub.substr(2);
+      }
+      result.push_back(sub);
     }
-   for(int i = 0; i < result.size(); i++) {    //print all splitted strings
-      std::string padded = pad_left(result.at(i) , 64);
+   for(int i = 0; i < result.size(); i++) {
+      std::string padded = pad_left(result.at(i), 64);
       inputs[i] = uint256_t(padded);
    }
 

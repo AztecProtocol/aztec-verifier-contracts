@@ -77,9 +77,9 @@ contract DifferentialFuzzer is TestBase {
     function get_inputs() internal view returns (string memory input_params) {
         input_params = "";
         if (inputs.length > 0) {
-            input_params = inputs[0].toString();
+            input_params = inputs[0].toHexString();
             for (uint256 i = 1; i < inputs.length; i++) {
-                input_params = string.concat(input_params, ",", inputs[i].toString());
+                input_params = string.concat(input_params, ",", inputs[i].toHexString());
             }
         }
     }
