@@ -8,8 +8,18 @@ contract DifferentialFuzzer is TestBase {
     using strings for *;
     using Strings for uint256;
 
-    enum PlonkFlavour{Standard, Turbo, Ultra}
-    enum CircuitFlavour{Blake, Add2, Recursive}
+    enum PlonkFlavour {
+        Invalid,
+        Standard,
+        Turbo,
+        Ultra
+    }
+    enum CircuitFlavour {
+        Invalid,
+        Blake,
+        Add2,
+        Recursive
+    }
 
     // Vm public constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
 
@@ -22,15 +32,20 @@ contract DifferentialFuzzer is TestBase {
     CircuitFlavour public circuitFlavour;
 
     /// @notice the proofs public inputs
-    uint256[] public public_inputs;
+    uint256[] public inputs;
 
-    function with_flavour(PlonkFlavour _flavour) public returns (DifferentialFuzzer) {
+    function with_plonk_flavour(PlonkFlavour _flavour) public returns (DifferentialFuzzer) {
         plonkFlavour = _flavour;
         return this;
     }
 
-    function with_public_inputs(uint256[] memory _pub_inputs) public returns (DifferentialFuzzer) {
-        public_inputs = _pub_inputs;
+    function with_circuit_flavour(CircuitFlavour _flavour) public returns (DifferentialFuzzer) {
+        circuitFlavour = _flavour;
+        return this;
+    }
+
+    function with_inputs(uint256[] memory _inputs) public returns (DifferentialFuzzer) {
+        inputs = _inputs;
         return this;
     }
 
@@ -58,13 +73,13 @@ contract DifferentialFuzzer is TestBase {
         }
     }
 
-    // Encode public inputs as a comma seperated string for the ffi call
-    function get_public_inputs() internal view returns (string memory public_input_params) {
-        public_input_params = "";
-        if (public_inputs.length > 0) {
-            public_input_params = public_inputs[0].toString();
-            for (uint256 i = 1; i < public_inputs.length; i++) {
-                public_input_params = string.concat(public_input_params, ",", public_inputs[i].toString());
+    // Encode inputs as a comma seperated string for the ffi call
+    function get_inputs() internal view returns (string memory input_params) {
+        input_params = "";
+        if (inputs.length > 0) {
+            input_params = inputs[0].toString();
+            for (uint256 i = 1; i < inputs.length; i++) {
+                input_params = string.concat(input_params, ",", inputs[i].toString());
             }
         }
     }
@@ -74,14 +89,14 @@ contract DifferentialFuzzer is TestBase {
         string memory prover_path = "./scripts/run_fuzzer.sh";
         string memory plonk_flavour = get_plonk_flavour();
         string memory circuit_flavour = get_circuit_flavour();
-        string memory public_input_params = get_public_inputs();
+        string memory input_params = get_inputs();
 
         // Execute the c++ prover binary
         string[] memory ffi_cmds = new string[](4);
         ffi_cmds[0] = prover_path;
         ffi_cmds[1] = plonk_flavour;
         ffi_cmds[2] = circuit_flavour;
-        ffi_cmds[3] = public_input_params;
+        ffi_cmds[3] = input_params;
 
         proof = vm.ffi(ffi_cmds);
     }

@@ -50,5 +50,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test --no-match-contract TestBase -vvv
         id: test
