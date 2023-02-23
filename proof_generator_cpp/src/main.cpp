@@ -1,5 +1,4 @@
 #include <iostream>
-#include<vector>
 #include<sstream>
 #include <bitset>
 
@@ -62,7 +61,7 @@ int main(int argc, char **argv)
 
     // equiv public_inputs = string_input.split(",")
     // Ran into issues with the old way of splitting strings. Used this to get around edge cases
-    std::vector<std::string> result;
+    size_t count = 0;
     std::stringstream s_stream(string_input); //create string stream from the string
     while(s_stream.good()) {
       std::string sub;
@@ -70,12 +69,9 @@ int main(int argc, char **argv)
       if (sub.substr(0, 2) == "0x") {
         sub = sub.substr(2);
       }
-      result.push_back(sub);
+      std::string padded = pad_left(sub, 64);
+      inputs[count++] = uint256_t(padded);
     }
-   for(int i = 0; i < result.size(); i++) {
-      std::string padded = pad_left(result.at(i), 64);
-      inputs[i] = uint256_t(padded);
-   }
 
     // @todo Make this depend on input
     const std::string project_root_path = DEFAULT_PROJECT_ROOT_PATH;
