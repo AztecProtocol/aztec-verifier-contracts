@@ -2,10 +2,10 @@
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
 
-import {Add2UltraVerificationKey as VK} from "../keys/Add2UltraVerificationKey.sol";
-import {BaseUltraVerifier as BASE} from "../BaseUltraVerifier.sol";
+import {RecursiveStandardVerificationKey as VK} from "../keys/RecursiveStandardVerificationKey.sol";
+import {BaseStandardVerifier as BASE} from "../BaseStandardVerifier.sol";
 
-contract Add2UltraVerifier is BASE {
+contract RecursiveStandardVerifier is BASE {
     function getVerificationKeyHash() public pure override(BASE) returns (bytes32) {
         return VK.verificationKeyHash();
     }

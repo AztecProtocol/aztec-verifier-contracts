@@ -5,7 +5,7 @@
 [submodule "barretenberg"]
 	path = barretenberg
 	url = git@github.com:AztecProtocol/barretenberg.git
-    branch = zw/ultra-changes-for-noir
+  branch = zw/ultra-changes-for-noir-updated
 [submodule "lib/solidity-stringutils"]
 	path = lib/solidity-stringutils
 	url = https://github.com/Arachnid/solidity-stringutils

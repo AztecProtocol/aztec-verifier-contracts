@@ -69,7 +69,7 @@ contract TestBase is Test {
         }
     }
 
-     function printList(uint256[] memory _data, uint256 _offset) internal {
+    function printList(uint256[] memory _data, uint256 _offset) internal {
         for (uint256 i = _offset; i < _data.length; i++) {
             emit log_named_bytes32(i.toString(), bytes32(_data[i]));
         }
