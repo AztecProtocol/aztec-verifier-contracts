@@ -1,11 +1,11 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-	branch = v1.3.0
+	branch = v1.4.0
 [submodule "barretenberg"]
 	path = barretenberg
 	url = git@github.com:AztecProtocol/barretenberg.git
-    branch = zw/ultra-changes-for-noir
+  branch = zw/ultra-changes-for-noir-updated
 [submodule "lib/solidity-stringutils"]
 	path = lib/solidity-stringutils
 	url = https://github.com/Arachnid/solidity-stringutils

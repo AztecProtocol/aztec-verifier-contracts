@@ -2,32 +2,18 @@
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
 
-import {TestBase} from "./base/TestBase.sol";
-import {StandardVerifier} from "../src/standard/instance/StandardVerifier.sol";
-import {BaseStandardVerifier} from "../src/standard/BaseStandardVerifier.sol";
+import {TestBase} from "../base/TestBase.sol";
+import {DifferentialFuzzer} from "../base/DifferentialFuzzer.sol";
+import {BaseStandardVerifier} from "../../src/standard/BaseStandardVerifier.sol";
+import {IVerifier} from "../../src/interfaces/IVerifier.sol";
 
-import {DifferentialFuzzer} from "./base/DifferentialFuzzer.sol";
-
-contract StandardTest is TestBase {
-    StandardVerifier public verifier;
+contract TestBaseStandard is TestBase {
+    IVerifier public verifier;
     DifferentialFuzzer public fuzzer;
+    uint256 public PUBLIC_INPUT_COUNT;
 
-    uint256 public constant PUBLIC_INPUT_COUNT = 4;
-
-    function setUp() public {
-        verifier = new StandardVerifier();
-        fuzzer = new DifferentialFuzzer().with_flavour(DifferentialFuzzer.PlonkFlavour.Standard);
-    }
-
-    function testFuzzProof(uint256 input1, uint256 input2, uint256 input3) public {
-        uint256[] memory public_inputs = new uint256[](3);
-        public_inputs[0] = input1;
-        public_inputs[1] = input2;
-        public_inputs[2] = input3;
-
-        bytes memory proofData = fuzzer.with_public_inputs(public_inputs).generate_proof();
-        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
-        assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
+    function setUp() public virtual {
+        fuzzer = new DifferentialFuzzer().with_plonk_flavour(DifferentialFuzzer.PlonkFlavour.Standard);
     }
 
     function testValidProof() public {

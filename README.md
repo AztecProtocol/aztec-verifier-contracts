@@ -24,20 +24,18 @@ The UltraPlonk Verifier follows the same structure as the Standard Plonk verifie
 
 ## Generating Verification Keys and Proofs
 
-Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg and download SRS.
-
-To regenerate keys + proofs, run `generate_vks_and_proofs.sh`. This generates keys and proofs for both the standard and ultra plonk setups. Proof are stored in `data/<version>`.
+Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg, download SRS and generate verification keys.
 
 # Tests
 
-Test are performed with a `TestBase` harness, it provides helpers for reading files and printing proofs. The tests also require proofs and verification keys. To generate please run `generate_vks_and_proofs.sh` running the tests.
+Test are performed with a `TestBase` harness, it provides helpers for reading files and printing proofs. The tests also require proofs and verification keys, those are build as part of the `bootstrap.sh`.
 
 ## How To Run the Tests?
 
 To run all tests, run the following scripts at the root of the repo:
 
 ```bash
-forge test # add -(v, vv, vvv, vvvv) for verbosity of logs, no logs emitted as default
+forge test --no-match-contract TestBase # add -(v, vv, vvv, vvvv) for verbosity of logs, no logs emitted as default
 ```
 
 To run test for a specific Contract test,

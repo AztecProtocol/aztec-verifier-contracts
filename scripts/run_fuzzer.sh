@@ -1,8 +1,9 @@
 #!/bin/bash
 
-FLAVOUR=${1:-"standard"}
-INPUTS=${2:-"1,2,3,4"}
+PLONK_FLAVOUR=${1:-"standard"}
+CIRCUIT_FLAVOUR=${2:-"blake"}
+INPUTS=${3:-"1,2,3,4"}
 
-cd generators/proof_generator/build
-src/proof_generator $FLAVOUR $INPUTS
+cd proof_generator_cpp/build
+src/proof_generator $PLONK_FLAVOUR $CIRCUIT_FLAVOUR $INPUTS
 cd ../../../

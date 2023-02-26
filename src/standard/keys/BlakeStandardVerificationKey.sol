@@ -3,7 +3,7 @@
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
 
-library StandardVerificationKey {
+library BlakeStandardVerificationKey {
     function verificationKeyHash() internal pure returns (bytes32) {
         return 0x7b35134386519c997aa67d63dd0fcfb17cb24fa05a07cc38bb622898d4776cfb;
     }

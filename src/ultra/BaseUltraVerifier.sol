@@ -3146,7 +3146,7 @@ abstract contract BaseUltraVerifier {
                 mstore(PAIRING_LHS_Y_LOC, sub(q, mload(PAIRING_LHS_Y_LOC)))
 
                 if mload(CONTAINS_RECURSIVE_PROOF_LOC) {
-                    error(0,0,0) // todo remove
+                    // error(0,0,0) // todo remove
                     // VALIDATE RECURSIVE P1
                     {
                         let x := mload(RECURSIVE_P1_X_LOC)
