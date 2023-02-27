@@ -33,6 +33,8 @@ contract Add2UltraTest is TestBaseUltra {
 
         bytes memory proofData = fuzzer.with_inputs(inputs).generate_proof();
 
-        assertTrue(verifier.verify(proofData), "The proof is not valid");
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
+
+        assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 }
