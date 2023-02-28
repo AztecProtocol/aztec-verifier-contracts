@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
-// gas cost at 5000 optimizer runs 0.8.10: 287,589 (includes 21,000 base cost)
 
 /**
  * @title Standard Plonk proof verification contract
  * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
+ * Consult https://eprint.iacr.org/2019/953.pdf for more details on the verification algorithm (page 31)
  */
 abstract contract BaseStandardVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
@@ -70,7 +70,7 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant C_ALPHA_LOC = 0x200 + 0x340 + 0x300 + 0x40;
     uint256 internal constant C_ARITHMETIC_ALPHA_LOC = 0x200 + 0x340 + 0x300 + 0x60;
     uint256 internal constant C_ZETA_LOC = 0x200 + 0x340 + 0x300 + 0x80;
-    uint256 internal constant C_CURRENT_LOC = 0x200 + 0x340 + 0x300 + 0xa0;
+    uint256 internal constant C_CURRENT_LOC = 0x200 + 0x340 + 0x300 + 0xa0; // @note Can be removed
     uint256 internal constant C_V0_LOC = 0x200 + 0x340 + 0x300 + 0xc0;
     uint256 internal constant C_V1_LOC = 0x200 + 0x340 + 0x300 + 0xe0;
     uint256 internal constant C_V2_LOC = 0x200 + 0x340 + 0x300 + 0x100;
@@ -123,12 +123,18 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant PUBLIC_INPUTS_HASH_LOCATION = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0xc0;
 
     bytes4 internal constant PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR = 0xeba9f4a6;
+    bytes4 internal constant RECURSIVE_PROOF_INVALID_BN128_G1_POINT_SELECTOR = 0x5b6552fb;
     bytes4 internal constant PUBLIC_INPUT_GE_P_SELECTOR = 0x374a972f;
     bytes4 internal constant MOD_EXP_FAILURE_SELECTOR = 0xf894a7bc;
     bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
+    bytes4 internal constant ERR_S = 0xf7b44074;
+
+    error ERR(bytes32, bytes32, bytes32);
+
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
+    error RECURSIVE_PROOF_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
     error MOD_EXP_FAILURE();
@@ -157,6 +163,8 @@ abstract contract BaseStandardVerifier {
      */
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
+        // @note - The order of the checks in this implementation differs from the paper to save gas.
+        // @todo - Add the ordering in here. 
 
         uint256 requiredPublicInputCount;
         assembly {
@@ -240,43 +248,45 @@ abstract contract BaseStandardVerifier {
 
                     // validate these are valid bn128 G1 points
                     if iszero(and(and(lt(x0, q), lt(x1, q)), and(lt(y0, q), lt(y1, q)))) {
-                        mstore(0x00, PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR)
+                        mstore(0x00, RECURSIVE_PROOF_INVALID_BN128_G1_POINT_SELECTOR)
                         revert(0x00, 0x04)
                     }
                 }
             }
 
+            /**
+             * STEP 4. Generate challenges
+             */
+
             {
                 /**
                  * Generate initial challenge
-                 *
                  */
-
                 mstore(0x00, shl(224, mload(N_LOC)))
                 mstore(0x04, shl(224, mload(NUM_INPUTS_LOC)))
                 let challenge := keccak256(0x00, 0x08)
+                mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
 
                 /**
-                 * Generate beta, gamma challenges
+                 * Generate beta challenge
                  */
-                mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
                 // The public input location is stored at 0x24, we then add 0x24 to skip selector and the length of public inputs
                 let public_inputs_start := add(calldataload(0x24), 0x24)
                 // copy the public inputs over
                 let public_input_size := mul(mload(NUM_INPUTS_LOC), 0x20)
                 calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_inputs_start, public_input_size)
-
                 // copy W1, W2, W3 into challenge. Each point is 0x40 bytes, so load 0xc0 = 3 * 0x40 bytes
-                let w_start := add(calldataload(0x04), 0x24)
-                calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), w_start, 0xc0)
+                let proof_ptr := add(calldataload(0x04), 0x24)
+                calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), proof_ptr, 0xc0)
 
                 // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
                 let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
-
                 challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, challenge_bytes_size)
-
                 mstore(C_BETA_LOC, mod(challenge, p))
 
+                /**
+                 * Generate gamma challenge
+                 */
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
                 challenge := keccak256(0x00, 0x21)
@@ -290,8 +300,10 @@ abstract contract BaseStandardVerifier {
                 mstore(0x40, mload(Z_X_LOC))
                 challenge := keccak256(0x00, 0x60)
                 mstore(C_ALPHA_LOC, mod(challenge, p))
+
                 /**
                  * Generate zeta challenge
+                 * Using mstore instead of calldatacopy to read the ones where mod have been applied
                  */
                 mstore(0x00, challenge)
                 mstore(0x20, mload(T1_Y_LOC))
@@ -301,9 +313,52 @@ abstract contract BaseStandardVerifier {
                 mstore(0xa0, mload(T3_Y_LOC))
                 mstore(0xc0, mload(T3_X_LOC))
                 challenge := keccak256(0x00, 0xe0)
-
                 mstore(C_ZETA_LOC, mod(challenge, p))
-                mstore(C_CURRENT_LOC, challenge)
+
+                /**
+                 * GENERATE NU CHALLENGES
+                 */
+
+                // get a calldata pointer that points to the start of the data we want to copy
+                let calldata_ptr := add(calldataload(0x04), 0x24)
+                // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
+                // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
+                calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
+
+                mstore(0x00, challenge)
+                calldatacopy(0x20, calldata_ptr, 0xc0) // 6 * 0x20 = 0xc0
+                challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
+
+                mstore(C_V0_LOC, mod(challenge, p))
+
+                mstore(0x00, challenge)
+                mstore8(0x20, 0x01)
+                mstore(C_V1_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x02)
+                mstore(C_V2_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x03)
+                mstore(C_V3_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x04)
+                mstore(C_V4_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x05)
+                challenge := keccak256(0x00, 0x21)
+                mstore(C_V5_LOC, mod(challenge, p))
+
+                /**
+                 * GENERATE SEPARATOR CHALLENGE
+                 * Using mstore instead of calldatacopy to read the ones where mod have been applied
+                 */
+                mstore(0x00, challenge)
+                mstore(0x20, mload(PI_Z_Y_LOC))
+                mstore(0x40, mload(PI_Z_X_LOC))
+                mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
+                mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
+
+                mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
             }
 
             /**
@@ -316,31 +371,40 @@ abstract contract BaseStandardVerifier {
             {
                 let gamma := mload(C_GAMMA_LOC)
                 let work_root := mload(OMEGA_LOC)
-                let endpoint := sub(mul(mload(NUM_INPUTS_LOC), 0x20), 0x20)
-                let public_inputs
                 let root_1 := mload(C_BETA_LOC)
                 let root_2 := root_1
                 let numerator_value := 1
                 let denominator_value := 1
 
                 let p_clone := p // move p to the front of the stack
-                let valid := true
+                let valid_inputs := true
+
+                // Load the starting point of the public inputs (jump over the selector and the length of public inputs [0x24])
+                let public_inputs_ptr := add(calldataload(0x24), 0x24)
+
+                // endpoint_ptr = public_inputs_ptr + (num_inputs - 1) * 0x20. We are subtracting 1 to "cleanly" handle odd number of inputs.
+                let endpoint_ptr := add(public_inputs_ptr, sub(mul(mload(NUM_INPUTS_LOC), 0x20), 0x20))
 
                 root_1 := mulmod(root_1, 0x05, p_clone) // k1.beta
                 root_2 := mulmod(root_2, 0x07, p_clone) // 0x05 + 0x07 = 0x0c = external coset generator
 
-                public_inputs := add(calldataload(0x24), 0x24)
-                endpoint := add(endpoint, public_inputs)
+                // If inputs.length is even && > 0. We will only enter the first loop here.
+                // If inputs.length is odd, we execute up to the last input, and then we execute the second loop.
+                // for (uint256 i = 0; i < inputs.length - 1; i += 2).
+                for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x40) } {
+                    // Load the next two public inputs
+                    let input0 := calldataload(public_inputs_ptr)
+                    let input1 := calldataload(add(public_inputs_ptr, 0x20))
 
-                for {} lt(public_inputs, endpoint) {} {
-                    let input0 := calldataload(public_inputs)
+                    // Ensure that the public inputs are less than the prime
+                    valid_inputs := and(valid_inputs, and(lt(input0, p_clone), lt(input1, p_clone)))
+
                     let N0 := add(root_1, add(input0, gamma))
                     let D0 := add(root_2, N0) // 4x overloaded
 
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
 
-                    let input1 := calldataload(add(public_inputs, 0x20))
                     let N1 := add(root_1, add(input1, gamma))
 
                     denominator_value := mulmod(mulmod(D0, denominator_value, p_clone), add(N1, root_2), p_clone)
@@ -348,43 +412,29 @@ abstract contract BaseStandardVerifier {
 
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
-
-                    valid := and(valid, and(lt(input0, p_clone), lt(input1, p_clone)))
-                    public_inputs := add(public_inputs, 0x40)
-
-                    // validate public inputs are field elements (i.e. < p)
-                    if iszero(and(lt(input0, p_clone), lt(input1, p_clone))) {
-                        mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
                 }
 
-                endpoint := add(endpoint, 0x20)
-                for {} lt(public_inputs, endpoint) { public_inputs := add(public_inputs, 0x20) } {
-                    let input0 := calldataload(public_inputs)
+                // If there was an odd number of public inputs, endpoint >= public_inputs_ptr after this update
+                endpoint_ptr := add(endpoint_ptr, 0x20)
 
-                    // validate public inputs are field elements (i.e. < p)
-                    if iszero(lt(input0, p_clone)) {
-                        mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
+                // We will only enter this loop if there is an odd number of public inputs
+                // And we will only enter it once.
+                for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
+                    let input0 := calldataload(public_inputs_ptr)
+                    // Extend validity check with next public input
+                    valid_inputs := and(valid_inputs, lt(input0, p_clone))
 
-                    valid := and(valid, lt(input0, p_clone))
                     let T0 := addmod(input0, gamma, p_clone)
-                    numerator_value :=
-                        mulmod(
-                            numerator_value,
-                            add(root_1, T0), // 0x05 = coset_generator0
-                            p_clone
-                        )
-                    denominator_value :=
-                        mulmod(
-                            denominator_value,
-                            add(add(root_1, root_2), T0), // 0x0c = coset_generator7
-                            p_clone
-                        )
+                    numerator_value := mulmod(numerator_value, add(root_1, T0), p_clone)
+                    denominator_value := mulmod(denominator_value, add(add(root_1, root_2), T0), p_clone)
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
+                }
+
+                // Revert if not all public inputs are field elements (i.e. < p)
+                if iszero(valid_inputs) {
+                    mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
+                    revert(0x00, 0x04)
                 }
 
                 mstore(DELTA_NUMERATOR_LOC, numerator_value)
@@ -392,7 +442,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * Compute lagrange poly and vanishing poly fractions
+             * STEP 5 and 6: Compute lagrange poly and vanishing poly fractions
              */
             {
                 let zeta := mload(C_ZETA_LOC)
@@ -476,7 +526,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * COMPUTE CONSTANT TERM (r_0) OF LINEARISATION POLYNOMIAL
+             * STEP 7: COMPUTE CONSTANT TERM (r_0) OF LINEARISATION POLYNOMIAL
              */
             {
                 let alpha := mload(C_ALPHA_LOC)
@@ -521,52 +571,6 @@ abstract contract BaseStandardVerifier {
                     )
                 )
             }
-
-            /**
-             * GENERATE NU AND SEPARATOR CHALLENGES
-             */
-            {
-                let current_challenge := mload(C_CURRENT_LOC)
-                // get a calldata pointer that points to the start of the data we want to copy
-                let calldata_ptr := add(calldataload(0x04), 0x24)
-                // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
-                // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
-                calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
-
-                mstore(0x00, current_challenge)
-                calldatacopy(0x20, calldata_ptr, 0xc0) // 6 * 0x20 = 0xc0
-                let challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
-
-                mstore(C_V0_LOC, mod(challenge, p))
-
-                mstore(0x00, challenge)
-                mstore8(0x20, 0x01)
-                mstore(C_V1_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x02)
-                mstore(C_V2_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x03)
-                mstore(C_V3_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x04)
-                mstore(C_V4_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x05)
-                challenge := keccak256(0x00, 0x21)
-                mstore(C_V5_LOC, mod(challenge, p))
-
-                // separator
-                mstore(0x00, challenge)
-                mstore(0x20, mload(PI_Z_Y_LOC))
-                mstore(0x40, mload(PI_Z_X_LOC))
-                mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
-                mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
-
-                mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
-            }
-
-            // mstore(C_ALPHA_BASE_LOC, mload(C_ALPHA_LOC))
 
             /**
              * COMPUTE LINEARISED OPENING TERMS
