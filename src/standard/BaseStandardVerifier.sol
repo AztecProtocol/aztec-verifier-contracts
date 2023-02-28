@@ -127,6 +127,10 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
+    bytes4 internal constant ERR_S = 0xf7b44074;
+
+    error ERR(bytes32, bytes32, bytes32);
+
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
     error RECURSIVE_PROOF_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
@@ -270,7 +274,6 @@ abstract contract BaseStandardVerifier {
                 // copy the public inputs over
                 let public_input_size := mul(mload(NUM_INPUTS_LOC), 0x20)
                 calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_inputs_start, public_input_size)
-
                 // copy W1, W2, W3 into challenge. Each point is 0x40 bytes, so load 0xc0 = 3 * 0x40 bytes
                 let proof_ptr := add(calldataload(0x04), 0x24)
                 calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), proof_ptr, 0xc0)
