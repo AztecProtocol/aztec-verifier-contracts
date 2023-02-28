@@ -15,8 +15,9 @@ contract TestBaseUltra is TestBase {
         fuzzer = new DifferentialFuzzer().with_plonk_flavour(DifferentialFuzzer.PlonkFlavour.Ultra);
     }
 
-    function testUltraProof() public {
-        bytes memory proof = fuzzer.generate_proof();
-        assertTrue(verifier.verify(proof));
+    function testValidProof() public {
+        bytes memory proofData = fuzzer.generate_proof();
+        (bytes32[] memory publicInputs, bytes memory proof) = splitProof(proofData, PUBLIC_INPUT_COUNT);
+        assertTrue(verifier.verify(proof, publicInputs), "The proof is not valid");
     }
 }
