@@ -20,7 +20,7 @@ public:
 
         Composer composer(srs_path);
 
-        field_ct a(witness_ct(&composer, inputs[0]));
+        field_ct a(public_witness_ct(&composer, inputs[0]));
         field_ct b(public_witness_ct(&composer, inputs[1]));
         field_ct c(public_witness_ct(&composer, inputs[2]));
         c.assert_equal(a + b);
