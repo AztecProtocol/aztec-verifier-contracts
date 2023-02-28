@@ -9,7 +9,7 @@ pragma solidity >=0.8.4;
  */
 abstract contract BaseStandardVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
-    uint256 internal constant N_LOC = 0x200 + 0x00;
+    uint256 internal constant N_LOC = 0x200 +              0x00;
     uint256 internal constant NUM_INPUTS_LOC = 0x200 + 0x20;
     uint256 internal constant OMEGA_LOC = 0x200 + 0x40;
     uint256 internal constant DOMAIN_INVERSE_LOC = 0x200 + 0x60;
