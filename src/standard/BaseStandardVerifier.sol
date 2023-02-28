@@ -162,6 +162,8 @@ abstract contract BaseStandardVerifier {
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
         // @note - The order of the checks in this implementation differs from the paper to save gas.
+        // @todo - Add the ordering in here. 
+
         uint256 requiredPublicInputCount;
         assembly {
             requiredPublicInputCount := mload(NUM_INPUTS_LOC)
@@ -280,8 +282,6 @@ abstract contract BaseStandardVerifier {
 
                 // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
                 let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
-
-                // β = H(initial_challenge, public_inputs, W1, W2, W3)
                 challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, challenge_bytes_size)
                 mstore(C_BETA_LOC, mod(challenge, p))
 
@@ -290,8 +290,6 @@ abstract contract BaseStandardVerifier {
                  */
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
-                // γ = H(β, 0x01)
-
                 challenge := keccak256(0x00, 0x21)
                 mstore(C_GAMMA_LOC, mod(challenge, p))
 
@@ -301,8 +299,6 @@ abstract contract BaseStandardVerifier {
                 mstore(0x00, challenge)
                 mstore(0x20, mload(Z_Y_LOC))
                 mstore(0x40, mload(Z_X_LOC))
-
-                // α = H(γ, Z)
                 challenge := keccak256(0x00, 0x60)
                 mstore(C_ALPHA_LOC, mod(challenge, p))
 
@@ -317,20 +313,21 @@ abstract contract BaseStandardVerifier {
                 mstore(0x80, mload(T2_X_LOC))
                 mstore(0xa0, mload(T3_Y_LOC))
                 mstore(0xc0, mload(T3_X_LOC))
-
-                // z = H(α, T1, T2, T3)
                 challenge := keccak256(0x00, 0xe0)
                 mstore(C_ZETA_LOC, mod(challenge, p))
 
                 /**
-                 * GENERATE VEGA and NU CHALLENGES (Opening challenge)
+                 * GENERATE NU CHALLENGES
                  */
+
+                // get a calldata pointer that points to the start of the data we want to copy
+                let calldata_ptr := add(calldataload(0x04), 0x24)
+                // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
+                // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
+                calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
+
                 mstore(0x00, challenge)
-
-                // Skip over W1, W2, W3, Z, T1, T2, T3
-                calldatacopy(0x20, add(proof_ptr, 0x1c0), 0xc0) // 6 * 0x20 = 0xc0
-
-                // v = H(z, W1_EVAL, W2_EVAL, W3_EVAL, SIGMA1_EVAL, SIGMA2_EVAL, Z_OMEGA_EVAL)
+                calldatacopy(0x20, calldata_ptr, 0xc0) // 6 * 0x20 = 0xc0
                 challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
 
                 mstore(C_V0_LOC, mod(challenge, p))
@@ -362,7 +359,6 @@ abstract contract BaseStandardVerifier {
                 mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
                 mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
 
-                // u = H(C_V5, PI_Z, PI_Z_OMEGA)
                 mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
             }
 
@@ -388,6 +384,7 @@ abstract contract BaseStandardVerifier {
              *
              * We efficiently compute the numerator and denominator now, storing them for later use.
              */
+            // Permutation polynomial?
             {
                 let beta := mload(C_BETA_LOC) // β
                 let gamma := mload(C_GAMMA_LOC) // γ
@@ -685,12 +682,11 @@ abstract contract BaseStandardVerifier {
                         p
                     )
                 )
-
-                // 0x00 = [s_σ₃]₁.x,
-                // 0x20 = [s_σ₃]₁.y,
+                // 0x00 = SIGMA3_X_LOC,
+                // 0x20 = SIGMA3_Y_LOC,
                 // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
-                // 0x60 = [z]₁.x,
-                // 0x80 = [z]₁.y,
+                // 0x60 = Z_X_LOC,
+                // 0x80 = Z_Y_LOC,
                 // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
 
                 // ACCUMULATOR2: −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ₃]₁
