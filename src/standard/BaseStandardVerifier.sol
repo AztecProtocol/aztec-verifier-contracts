@@ -6,7 +6,6 @@ pragma solidity >=0.8.4;
  * @title Standard Plonk proof verification contract
  * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
  * https://eprint.iacr.org/2019/953.pdf
- * https://raw.githubusercontent.com/AztecProtocol/plonk-with-lookups-private/new-stuff/PLONK-VIP%20edition.pdf?token=GHSAT0AAAAAABYVBBXOZ4OAUTU7ZSPDMDKIY77D4XA?
  */
 abstract contract BaseStandardVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
@@ -131,7 +130,6 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
     bytes4 internal constant ERR_S = 0xf7b44074;
-
     error ERR(bytes32, bytes32, bytes32);
 
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
@@ -189,14 +187,14 @@ abstract contract BaseStandardVerifier {
 
                 // @follow-up Should we use the same naming as in the paper to reduce confusion? Seems like a no-brainer.
                 // @note The proof is stored differently than the paper with the following order:
-                // [a]1, [b]1, [c]1, [z]1, [tlo]1, [tmid]1, [thi]1,  ̄a,  ̄b,  ̄c,  ̄sσ1,  ̄sσ2,  ̄zω,  [Wz]1, [Wzω]1,
+                // [a]1, [b]1, [c]1, [z]₁, [tlo]1, [tmid]1, [thi]1, a̅, b̅, c̅, s̅_σ₁, s̅_σ₂, z̅_ω,  [Wz]1, [Wzω]1
                 mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q)) // [a]1
                 mstore(W1_Y_LOC, mod(calldataload(data_ptr), q))
                 mstore(W2_X_LOC, mod(calldataload(add(data_ptr, 0x60)), q)) // [b]1
                 mstore(W2_Y_LOC, mod(calldataload(add(data_ptr, 0x40)), q))
                 mstore(W3_X_LOC, mod(calldataload(add(data_ptr, 0xa0)), q)) // [c]1
                 mstore(W3_Y_LOC, mod(calldataload(add(data_ptr, 0x80)), q))
-                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q)) // [z]1
+                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q)) // [z]₁
                 mstore(Z_Y_LOC, mod(calldataload(add(data_ptr, 0xc0)), q))
                 mstore(T1_X_LOC, mod(calldataload(add(data_ptr, 0x120)), q)) // [tlo]1
                 mstore(T1_Y_LOC, mod(calldataload(add(data_ptr, 0x100)), q))
@@ -204,12 +202,12 @@ abstract contract BaseStandardVerifier {
                 mstore(T2_Y_LOC, mod(calldataload(add(data_ptr, 0x140)), q))
                 mstore(T3_X_LOC, mod(calldataload(add(data_ptr, 0x1a0)), q)) // [thi]1
                 mstore(T3_Y_LOC, mod(calldataload(add(data_ptr, 0x180)), q))
-                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p)) //  ̄a
-                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p)) //  ̄b
-                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p)) //  ̄c
-                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p)) //   ̄sσ1
-                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p)) //  ̄sσ2
-                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p)) //  ̄zω
+                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p)) // a̅
+                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p)) // b̅
+                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p)) // c̅
+                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p)) // s̅_σ₁
+                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p)) // s̅_σ₂
+                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p)) // z̅_ω
                 mstore(PI_Z_X_LOC, mod(calldataload(add(data_ptr, 0x2a0)), q)) // [Wz]1
                 mstore(PI_Z_Y_LOC, mod(calldataload(add(data_ptr, 0x280)), q))
                 mstore(PI_Z_OMEGA_X_LOC, mod(calldataload(add(data_ptr, 0x2e0)), q)) // [Wzω]1
@@ -410,7 +408,8 @@ abstract contract BaseStandardVerifier {
                 // root_1 = β * 0x05
                 let root_1 := mulmod(beta, 0x05, p_clone) // k1.β
                 // root_2 = β * 0x0c
-                let root_2 := mulmod(beta, 0x0c, p_clone) // k2.β
+                let root_2 := mulmod(beta, 0x0c, p_clone)
+                // @follow-up What is the `root_2` value called? Is it really just that we are using the coset to get non-overlapping but not name it?
                 // @note 0x05 + 0x07 == 0x0c == external coset generator
 
                 for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
@@ -583,6 +582,11 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
+             * STEP 9: Compute first path of batched polynomial commitment
+             * @follow-up Update structure below to match the paper closer
+             */
+
+            /**
              * COMPUTE LINEARISED OPENING TERMS
              */
             {
@@ -593,31 +597,40 @@ abstract contract BaseStandardVerifier {
                 let zeta := mload(C_ZETA_LOC)
                 let gamma := mload(C_GAMMA_LOC)
                 let alpha := mload(C_ALPHA_LOC)
+                // β.ζ = β * ζ
                 let beta_zeta := mulmod(beta, zeta, p)
-
+                // witness_term = a̅ + γ
                 let witness_term := addmod(mload(W1_EVAL_LOC), gamma, p)
+                // partial_grand_product = β.ζ + a̅ + γ
                 let partial_grand_product := addmod(beta_zeta, witness_term, p)
+                // sigma_multiplier = s̅_σ₁ * β + a̅ + γ
                 let sigma_multiplier := addmod(mulmod(mload(SIGMA1_EVAL_LOC), beta, p), witness_term, p)
+                // witness_term = b̅ + γ
                 witness_term := addmod(mload(W2_EVAL_LOC), gamma, p)
+                // sigma_multiplier *= s̅_σ₂ * β + b̅ + γ
                 sigma_multiplier :=
                     mulmod(sigma_multiplier, addmod(mulmod(mload(SIGMA2_EVAL_LOC), beta, p), witness_term, p), p)
+
+                // k1_beta_zeta = k1 * β.ζ
                 let k1_beta_zeta := mulmod(0x05, beta_zeta, p)
-                //  partial_grand_product = mulmod( mulmod( partial_grand_product, w2 + k1.beta.zeta + gamma , p), k2.beta.zeta + gamma + w3, p)
-                partial_grand_product :=
-                    mulmod(
-                        mulmod(
-                            partial_grand_product,
-                            addmod(k1_beta_zeta, witness_term, p), // w2 + k1.beta.zeta + gamma
-                            p
-                        ),
-                        addmod(addmod(add(k1_beta_zeta, beta_zeta), gamma, p), mload(W3_EVAL_LOC), p), // k2.beta.zeta + gamma + w3 where k2 = k1+1
-                        p
-                    )
+                // k1_beta_zeta_witness = k1 * β.ζ + b̅ + γ
+                let k1_beta_zeta_witness := addmod(k1_beta_zeta, witness_term, p)
+                // partial_grand_product *= (k1 * β.ζ + b̅ + γ)
+                partial_grand_product := mulmod(partial_grand_product, k1_beta_zeta_witness, p)
+                // witness_term = c̅ + γ
+                witness_term := addmod(mload(W3_EVAL_LOC), gamma, p)
+                let k2_beta_zeta_witness := addmod(add(k1_beta_zeta, beta_zeta), witness_term, p)
+                // partial_grand_product *= (k2 * β.ζ + c̅ + γ) // [k2 = k1 + 1]
+                partial_grand_product := mulmod(partial_grand_product, k2_beta_zeta_witness, p)
 
-                let linear_challenge := alpha // Owing to the simplified Plonk, nu =1, linear_challenge = nu * alpha = alpha
+                let linear_challenge := alpha // Owing to the simplified Plonk, nu = 1, linear_challenge = nu * alpha = alpha
 
+                // 0x00-0x40 = [s_σ₃]₁
                 mstore(0x00, mload(SIGMA3_X_LOC))
                 mstore(0x20, mload(SIGMA3_Y_LOC))
+
+                // 0x40 = -((s̅_σ₁ * β + a̅ + γ) * (s̅_σ₂ * β + b̅ + γ) * z̅_ω * β) * α
+                // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
                 mstore(
                     0x40,
                     mulmod(
@@ -634,9 +647,14 @@ abstract contract BaseStandardVerifier {
                     let y := mload(Z_Y_LOC)
                     let xx := mulmod(x, x, q)
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
+
+                    // 0x60-0x80 = [z]₁
                     mstore(0x60, x)
                     mstore(0x80, y)
                 }
+                // 0xa0 = (partial_grand_product + L_1 * α^2) * α + u
+                // 0xa0 = (((β.ζ + a̅ + γ) * (k1 * β.ζ + b̅ + γ) * (k2 * β.ζ + c̅ + γ)) + L_1 * α^2) * α + u
+                // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
                 mstore(
                     0xa0,
                     addmod(
@@ -649,27 +667,22 @@ abstract contract BaseStandardVerifier {
                         p
                     )
                 )
-                // 0x00 = mload(SIGMA3_X_LOC),
-                // 0x20 = mload(SIGMA3_Y_LOC),
+                // 0x00 = [s_σ₃]₁.x,
+                // 0x20 = [s_σ₃]₁.y,
                 // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
-                // 0x60 = mload(Z_X_LOC),
-                // 0x80 = mload(Z_Y_LOC),
+                // 0x60 = [z]₁.x,
+                // 0x80 = [z]₁.y,
                 // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            // Why ACCUMULATOR_X_LOC := ACCUMULATOR_X_LOC + ACCUMULATOR2_X_LOC? Inner parenthesis is executed before?
-                            and(
-                                staticcall(gas(), 7, 0x60, 0x60, ACCUMULATOR_X_LOC, 0x40),
-                                // [ACCUMULATOR_X_LOC, ACCUMULATOR_X_LOC + 0x40) = ((ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u)*[z]_1
-                                staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                            )
-                        )
-                    )
-                // [ACCUMULATOR2_X_LOC, ACCUMULATOR2_X_LOC + 0x40) = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ3]_1
 
+                // ACCUMULATOR2: −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ₃]₁
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u * [z]₁
+                success := and(success, staticcall(gas(), 7, 0x60, 0x60, ACCUMULATOR_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                // @note we are storing success flags here for later use. But those above should revert if not successful
+                // so right now this is mainly passing on the check of Z earlier.
                 mstore(GRAND_PRODUCT_SUCCESS_FLAG, success)
             }
 
@@ -896,8 +909,7 @@ abstract contract BaseStandardVerifier {
                 let r0neg := sub(p, mload(R_ZERO_EVAL_LOC)) // Change owing to the simplified Plonk @follow-up
                 let uzomega := mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p)
 
-                // -E = (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω)) * [1]1
-
+                // 0x40 = (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω))
                 mstore(0x00, 0x01) // [1].x
                 mstore(0x20, 0x02) // [1].y
                 // Yul stack optimizer doing some work here...
@@ -914,12 +926,11 @@ abstract contract BaseStandardVerifier {
                         )
                     )
                 )
-
-                let success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                    )
+                // ACCUMULATOR2 = [1] * (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω))
+                // ACCUMULATOR2 = -[E]
+                let success := staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
+                // ACCUMULATOR = ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
                 mstore(OPENING_COMMITMENT_SUCCESS_FLAG, success)
             }
 

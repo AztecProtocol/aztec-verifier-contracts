@@ -292,7 +292,7 @@ abstract contract BaseUltraVerifier {
     uint256 internal constant LIMB_SIZE = 0x100000000000000000; // 2<<68
     uint256 internal constant SUBLIMB_SHIFT = 0x4000; // 2<<14
 
-    error PUBLIC_INPUTS_HASH_VERIFICATION_FAILED(uint256, uint256);
+    error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
     error MOD_EXP_FAILURE();
@@ -311,6 +311,14 @@ abstract contract BaseUltraVerifier {
      */
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
+
+        uint256 requiredPublicInputCount;
+        assembly {
+            requiredPublicInputCount := mload(NUM_INPUTS_LOC)
+        }
+        if (requiredPublicInputCount != _publicInputs.length) {
+            revert PUBLIC_INPUT_COUNT_INVALID(requiredPublicInputCount, _publicInputs.length);
+        }
 
         assembly {
             let q := 21888242871839275222246405745257275088696311157297823662689037894645226208583 // EC group order
