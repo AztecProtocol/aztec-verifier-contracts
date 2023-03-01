@@ -5,7 +5,8 @@ pragma solidity >=0.8.4;
 /**
  * @title Standard Plonk proof verification contract
  * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
- * Consult https://eprint.iacr.org/2019/953.pdf for more details on the verification algorithm (page 31)
+ * https://eprint.iacr.org/2019/953.pdf
+ * https://raw.githubusercontent.com/AztecProtocol/plonk-with-lookups-private/new-stuff/PLONK-VIP%20edition.pdf?token=GHSAT0AAAAAABYVBBXOZ4OAUTU7ZSPDMDKIY77D4XA?
  */
 abstract contract BaseStandardVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
@@ -186,29 +187,32 @@ abstract contract BaseStandardVerifier {
                 // We add 0x24 to skip the selector + the length of the proof
                 let data_ptr := add(calldataload(0x04), 0x24)
 
-                mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q))
+                // @follow-up Should we use the same naming as in the paper to reduce confusion? Seems like a no-brainer.
+                // @note The proof is stored differently than the paper with the following order:
+                // [a]1, [b]1, [c]1, [z]1, [tlo]1, [tmid]1, [thi]1,  ̄a,  ̄b,  ̄c,  ̄sσ1,  ̄sσ2,  ̄zω,  [Wz]1, [Wzω]1,
+                mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q)) // [a]1
                 mstore(W1_Y_LOC, mod(calldataload(data_ptr), q))
-                mstore(W2_X_LOC, mod(calldataload(add(data_ptr, 0x60)), q))
+                mstore(W2_X_LOC, mod(calldataload(add(data_ptr, 0x60)), q)) // [b]1
                 mstore(W2_Y_LOC, mod(calldataload(add(data_ptr, 0x40)), q))
-                mstore(W3_X_LOC, mod(calldataload(add(data_ptr, 0xa0)), q))
+                mstore(W3_X_LOC, mod(calldataload(add(data_ptr, 0xa0)), q)) // [c]1
                 mstore(W3_Y_LOC, mod(calldataload(add(data_ptr, 0x80)), q))
-                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q))
+                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q)) // [z]1
                 mstore(Z_Y_LOC, mod(calldataload(add(data_ptr, 0xc0)), q))
-                mstore(T1_X_LOC, mod(calldataload(add(data_ptr, 0x120)), q))
+                mstore(T1_X_LOC, mod(calldataload(add(data_ptr, 0x120)), q)) // [tlo]1
                 mstore(T1_Y_LOC, mod(calldataload(add(data_ptr, 0x100)), q))
-                mstore(T2_X_LOC, mod(calldataload(add(data_ptr, 0x160)), q))
+                mstore(T2_X_LOC, mod(calldataload(add(data_ptr, 0x160)), q)) // [tmid]1
                 mstore(T2_Y_LOC, mod(calldataload(add(data_ptr, 0x140)), q))
-                mstore(T3_X_LOC, mod(calldataload(add(data_ptr, 0x1a0)), q))
+                mstore(T3_X_LOC, mod(calldataload(add(data_ptr, 0x1a0)), q)) // [thi]1
                 mstore(T3_Y_LOC, mod(calldataload(add(data_ptr, 0x180)), q))
-                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p))
-                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p))
-                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p))
-                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p))
-                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p))
-                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p))
-                mstore(PI_Z_X_LOC, mod(calldataload(add(data_ptr, 0x2a0)), q))
+                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p)) //  ̄a
+                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p)) //  ̄b
+                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p)) //  ̄c
+                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p)) //   ̄sσ1
+                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p)) //  ̄sσ2
+                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p)) //  ̄zω
+                mstore(PI_Z_X_LOC, mod(calldataload(add(data_ptr, 0x2a0)), q)) // [Wz]1
                 mstore(PI_Z_Y_LOC, mod(calldataload(add(data_ptr, 0x280)), q))
-                mstore(PI_Z_OMEGA_X_LOC, mod(calldataload(add(data_ptr, 0x2e0)), q))
+                mstore(PI_Z_OMEGA_X_LOC, mod(calldataload(add(data_ptr, 0x2e0)), q)) // [Wzω]1
                 mstore(PI_Z_OMEGA_Y_LOC, mod(calldataload(add(data_ptr, 0x2c0)), q))
             }
 
@@ -257,7 +261,6 @@ abstract contract BaseStandardVerifier {
             /**
              * STEP 4. Generate challenges
              */
-
             {
                 /**
                  * Generate initial challenge
@@ -366,13 +369,32 @@ abstract contract BaseStandardVerifier {
 
             /**
              * COMPUTE PUBLIC INPUT DELTA
+             * In the permutation argument, we will be generating some "residue" from the public inputs. This will impact `r_0`
+             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf) we take this into account by using a `PI` polynomial.
+             * However, computing the `PI` polynomial require us to compute `L_1(zeta),...,L_m(zeta)` for `m` public inputs.
+             * This could be expensive, and we can actually compute the `L_m(zeta)` only, and then use a `DELTA_PUBLIC_INPUTS`
+             * get us to the same result.
+             * Let β and γ be challenges, and wᵢ the i'th public input, :
+             * Let σ be the permutation and σ' be when applying σ and then mapping it into H' (H′ = H ∪ (k1 H) ∪ (k2 H)).
+             * For the public inputs, let σ'(i) = ζᵢ where ζᵢ are distinct elements disjoint from [n].
+             * These can be disjoined from [n] by defining σ'(i) = ζ * ωⁱ
+             * Then we can define ΔPI (`DELTA_PUBLIC_INPUTS`) as:
+             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
+             * @follow-up The values for sigma and sigma' need some elaboration. I don't understand where they come from.
+             * Or at least not why they are like they are here.
+             * Below we compute the numerator and denominator separately.
+             * Why do we have this here but not in the plonk paper? Plonk paper is using a `PI` polynomial to handle this.
+             * The PI polynomial requires the
+             * @todo Make clearer what this is doing and why such that readers get the reasoning behind it.
+             * @follow-up Write out the product up here
+             * @follow-up Why is this not part of the plonk paper, but only the extra github document?
+             * Helping figuring out the "offset" that is made to the permutation argument due to the public inputs
+             * All the wires are cancelled, so we would sit back with just the residue from the public inputs.
              */
-            // Permutation polynomial?
             {
-                let gamma := mload(C_GAMMA_LOC) // gamma
-                let work_root := mload(OMEGA_LOC) // omega
-                let root_1 := mload(C_BETA_LOC) // beta
-                let root_2 := root_1 // beta
+                let beta := mload(C_BETA_LOC) // β
+                let gamma := mload(C_GAMMA_LOC) // γ
+                let work_root := mload(OMEGA_LOC) // ω
                 let numerator_value := 1
                 let denominator_value := 1
 
@@ -382,51 +404,34 @@ abstract contract BaseStandardVerifier {
                 // Load the starting point of the public inputs (jump over the selector and the length of public inputs [0x24])
                 let public_inputs_ptr := add(calldataload(0x24), 0x24)
 
-                // endpoint_ptr = public_inputs_ptr + (num_inputs - 1) * 0x20. We are subtracting 1 to "cleanly" handle odd number of inputs.
-                let endpoint_ptr := add(public_inputs_ptr, sub(mul(mload(NUM_INPUTS_LOC), 0x20), 0x20))
+                // endpoint_ptr = public_inputs_ptr + num_inputs * 0x20. // every public input is 0x20 bytes
+                let endpoint_ptr := add(public_inputs_ptr, mul(mload(NUM_INPUTS_LOC), 0x20))
 
-                root_1 := mulmod(root_1, 0x05, p_clone) // k1.beta
-                root_2 := mulmod(root_2, 0x07, p_clone) // 0x05 + 0x07 = 0x0c = external coset generator
+                // root_1 = β * 0x05
+                let root_1 := mulmod(beta, 0x05, p_clone) // k1.β
+                // root_2 = β * 0x0c
+                let root_2 := mulmod(beta, 0x0c, p_clone) // k2.β
+                // @note 0x05 + 0x07 == 0x0c == external coset generator
 
-                // If inputs.length is even && > 0. We will only enter the first loop here.
-                // If inputs.length is odd, we execute up to the last input, and then we execute the second loop.
-                // for (uint256 i = 0; i < inputs.length - 1; i += 2).
-                for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x40) } {
-                    // Load the next two public inputs
-                    let input0 := calldataload(public_inputs_ptr)
-                    let input1 := calldataload(add(public_inputs_ptr, 0x20))
-
-                    // Ensure that the public inputs are less than the prime
-                    valid_inputs := and(valid_inputs, and(lt(input0, p_clone), lt(input1, p_clone)))
-
-                    let N0 := add(root_1, add(input0, gamma))
-                    let D0 := add(root_2, N0) // 4x overloaded
-
-                    root_1 := mulmod(root_1, work_root, p_clone)
-                    root_2 := mulmod(root_2, work_root, p_clone)
-
-                    let N1 := add(root_1, add(input1, gamma))
-
-                    denominator_value := mulmod(mulmod(D0, denominator_value, p_clone), add(N1, root_2), p_clone)
-                    numerator_value := mulmod(mulmod(N1, N0, p_clone), numerator_value, p_clone)
-
-                    root_1 := mulmod(root_1, work_root, p_clone)
-                    root_2 := mulmod(root_2, work_root, p_clone)
-                }
-
-                // If there was an odd number of public inputs, endpoint >= public_inputs_ptr after this update
-                endpoint_ptr := add(endpoint_ptr, 0x20)
-
-                // We will only enter this loop if there is an odd number of public inputs
-                // And we will only enter it once.
                 for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
-                    let input0 := calldataload(public_inputs_ptr)
-                    // Extend validity check with next public input
-                    valid_inputs := and(valid_inputs, lt(input0, p_clone))
+                    // Load the next public input
+                    let input := calldataload(public_inputs_ptr)
 
-                    let T0 := addmod(input0, gamma, p_clone)
-                    numerator_value := mulmod(numerator_value, add(root_1, T0), p_clone)
-                    denominator_value := mulmod(denominator_value, add(add(root_1, root_2), T0), p_clone)
+                    // check that wᵢ < p (delays check to the end of the loop for gas savings for success case)
+                    valid_inputs := and(valid_inputs, lt(input, p_clone))
+
+                    // t0 = wᵢ + γ
+                    let t := addmod(input, gamma, p_clone)
+
+                    // numerator_value *= (β.σ(i) + wᵢ + γ)
+                    // numerator_value *= (β.k1.ωⁱ + wᵢ + γ)
+                    numerator_value := mulmod(numerator_value, add(root_1, t), p_clone)
+
+                    // denominator_value *= (β.σ'(i) + wᵢ + γ)
+                    // denominator_value *= (β.k2.ωⁱ + wᵢ + γ)
+                    denominator_value := mulmod(denominator_value, add(root_2, t), p_clone)
+
+                    // Multiply the roots by ω  to "move to next element" in the cosets.
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
                 }
@@ -442,7 +447,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * STEP 5 and 6: Compute lagrange poly and vanishing poly fractions
+             * STEP 5 and 6: Compute lagrange- and vanishing poly fractions
              */
             {
                 let zeta := mload(C_ZETA_LOC)
@@ -519,9 +524,14 @@ abstract contract BaseStandardVerifier {
 
                 accumulator := mulmod(mulmod(accumulator, accumulator, p), mload(DELTA_DENOMINATOR_LOC), p)
 
+                // Compute the values where we needed inverses
+                // public_input_delta = delta_numerator * accumulator
                 mstore(PUBLIC_INPUT_DELTA_LOC, mulmod(mload(DELTA_NUMERATOR_LOC), accumulator, p))
+                // z_h = vanishing_numerator * t_0
                 mstore(ZERO_POLY_LOC, mulmod(vanishing_numerator, t0, p))
+                // l_start = lagrange_numerator * t_1
                 mstore(L_START_LOC, mulmod(lagrange_numerator, t1, p))
+                // l_end = lagrange_numerator * t_2
                 mstore(L_END_LOC, mulmod(lagrange_numerator, t2, p))
             }
 
@@ -532,43 +542,43 @@ abstract contract BaseStandardVerifier {
                 let alpha := mload(C_ALPHA_LOC)
                 let beta := mload(C_BETA_LOC)
                 let gamma := mload(C_GAMMA_LOC)
-                let r_0 :=
-                    sub(
-                        p,
-                        mulmod(
-                            mulmod(
-                                mulmod(
-                                    add(add(mload(W1_EVAL_LOC), gamma), mulmod(beta, mload(SIGMA1_EVAL_LOC), p)),
-                                    add(add(mload(W2_EVAL_LOC), gamma), mulmod(beta, mload(SIGMA2_EVAL_LOC), p)),
-                                    p
-                                ),
-                                add(mload(W3_EVAL_LOC), gamma),
-                                p
-                            ),
-                            mload(Z_OMEGA_EVAL_LOC),
-                            p
-                        )
-                    )
-                // r_0 = -(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω
+
+                // r_0_0 = (ā + βs̄_σ1 + γ)
+                let r_0_0 := add(add(mload(W1_EVAL_LOC), mulmod(beta, mload(SIGMA1_EVAL_LOC), p)), gamma)
+                // r_0_1 = (b̄ + βs̄_σ2 + γ)
+                let r_0_1 := add(add(mload(W2_EVAL_LOC), mulmod(beta, mload(SIGMA2_EVAL_LOC), p)), gamma)
+                // r_0_2 = (c̄ + γ)
+                let r_0_2 := add(mload(W3_EVAL_LOC), gamma)
+                // r_0_s = (ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω
+                let r_0_s := mulmod(mulmod(mulmod(r_0_0, r_0_1, p), r_0_2, p), mload(Z_OMEGA_EVAL_LOC), p)
+
+                // α^2 = α * α
                 let alpha_sqr := mulmod(alpha, alpha, p)
                 mstore(C_ALPHA_SQR_LOC, alpha_sqr)
+                // α^4 = α^2 * α^2 [stored now for later use]
                 mstore(C_ARITHMETIC_ALPHA_LOC, mulmod(alpha_sqr, alpha_sqr, p))
+
+                // l_1_a2 = L_1 * α^2
+                let l_1_a2 := mulmod(mload(L_START_LOC), alpha_sqr, p)
+                // l_n_a = L_n * α
+                let l_n_a := mulmod(mload(L_END_LOC), alpha, p)
+                // t_0 = z̄_ω - ∆PI
+                let t_0 := addmod(mload(Z_OMEGA_EVAL_LOC), sub(p, mload(PUBLIC_INPUT_DELTA_LOC)), p)
+
+                // @note that our r_0 looks different from the paper.
+                // This related to the public input delta that we mentioned earlier.
+                // So we are replacing PI with (z̄_ω - ∆PI) * L_n * α^2.
+                // @follow-up Elaborate on this replacement
+                // @note that our r_0 differs on the power of alpha from the paper. The alpha is a challenge
+                // so having a different challenge is fine, as long as both verifier and prover use the same.
+
+                // r_0 = α * (t_0 * l_n_a - l_1_a2 - r_0_s)
+                // r_0 = α * ((z_ω - ∆PI) * L_n * α - (L_1 * α^2) - (ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω))
+                // r_0 = (z_ω - ∆PI) * L_n * α^2 - L_1 * α^3 - α(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω)
 
                 mstore(
                     R_ZERO_EVAL_LOC,
-                    mulmod(
-                        addmod(
-                            addmod(r_0, sub(p, mulmod(mload(L_START_LOC), alpha_sqr, p)), p),
-                            mulmod(
-                                mulmod(mload(L_END_LOC), alpha, p),
-                                addmod(mload(Z_OMEGA_EVAL_LOC), sub(p, mload(PUBLIC_INPUT_DELTA_LOC)), p),
-                                p
-                            ),
-                            p
-                        ),
-                        alpha,
-                        p
-                    )
+                    mulmod(addmod(mulmod(t_0, l_n_a, p), addmod(sub(p, l_1_a2), sub(p, r_0_s), p), p), alpha, p)
                 )
             }
 
@@ -665,6 +675,7 @@ abstract contract BaseStandardVerifier {
 
             /**
              * COMPUTE ARITHMETIC SELECTOR OPENING GROUP ELEMENT
+             * @follow-up Elaborate on naming to easily match with the paper (part of step 9?)
              */
             {
                 let linear_challenge := mload(C_ARITHMETIC_ALPHA_LOC) // Owing to simplified Plonk, nu = 1,  linear_challenge = C_ARITHMETIC_ALPHA (= alpha^4)
@@ -720,8 +731,8 @@ abstract contract BaseStandardVerifier {
                     and(
                         success,
                         and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
+                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40), // ecAdd
+                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40) // ecMul
                         )
                     )
 
@@ -874,9 +885,19 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * COMPUTE BATCH EVALUATION SCALAR MULTIPLIER
+             * Step 11. COMPUTE BATCH EVALUATION SCALAR MULTIPLIER
              */
             {
+                let v0w1 := mulmod(mload(C_V0_LOC), mload(W1_EVAL_LOC), p)
+                let v1w2 := mulmod(mload(C_V1_LOC), mload(W2_EVAL_LOC), p)
+                let v2w3 := mulmod(mload(C_V2_LOC), mload(W3_EVAL_LOC), p)
+                let v3sig1 := mulmod(mload(C_V3_LOC), mload(SIGMA1_EVAL_LOC), p)
+                let v4sig2 := mulmod(mload(C_V4_LOC), mload(SIGMA2_EVAL_LOC), p)
+                let r0neg := sub(p, mload(R_ZERO_EVAL_LOC)) // Change owing to the simplified Plonk @follow-up
+                let uzomega := mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p)
+
+                // -E = (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω)) * [1]1
+
                 mstore(0x00, 0x01) // [1].x
                 mstore(0x20, 0x02) // [1].y
                 // Yul stack optimizer doing some work here...
@@ -885,27 +906,9 @@ abstract contract BaseStandardVerifier {
                     sub(
                         p,
                         addmod(
-                            mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p),
+                            uzomega,
                             addmod(
-                                sub(p, mload(R_ZERO_EVAL_LOC)), // Change owing to the simplified Plonk
-                                addmod(
-                                    mulmod(mload(C_V4_LOC), mload(SIGMA2_EVAL_LOC), p),
-                                    addmod(
-                                        mulmod(mload(C_V3_LOC), mload(SIGMA1_EVAL_LOC), p),
-                                        addmod(
-                                            mulmod(mload(C_V2_LOC), mload(W3_EVAL_LOC), p),
-                                            addmod(
-                                                mulmod(mload(C_V1_LOC), mload(W2_EVAL_LOC), p),
-                                                mulmod(mload(C_V0_LOC), mload(W1_EVAL_LOC), p),
-                                                p
-                                            ),
-                                            p
-                                        ),
-                                        p
-                                    ),
-                                    p
-                                ),
-                                p
+                                r0neg, addmod(v4sig2, addmod(v3sig1, addmod(v2w3, addmod(v1w2, v0w1, p), p), p), p), p
                             ),
                             p
                         )
@@ -921,7 +924,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * PERFORM PAIRING PREAMBLE
+             * Step 12: PERFORM PAIRING PREAMBLE
              */
             {
                 let u := mload(C_U_LOC)
