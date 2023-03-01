@@ -128,7 +128,6 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
     bytes4 internal constant ERR_S = 0xf7b44074;
-
     error ERR(bytes32, bytes32, bytes32);
 
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
@@ -664,7 +663,6 @@ abstract contract BaseStandardVerifier {
                     mstore(0x60, x)
                     mstore(0x80, y)
                 }
-
                 // 0xa0 = (partial_grand_product + L_1 * α^2) * α + u
                 // 0xa0 = (((β.ζ + a̅ + γ) * (k1 * β.ζ + b̅ + γ) * (k2 * β.ζ + c̅ + γ)) + L_1 * α^2) * α + u
                 // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
@@ -680,11 +678,11 @@ abstract contract BaseStandardVerifier {
                         p
                     )
                 )
-                // 0x00 = SIGMA3_X_LOC,
-                // 0x20 = SIGMA3_Y_LOC,
+                // 0x00 = [s_σ₃]₁.x,
+                // 0x20 = [s_σ₃]₁.y,
                 // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
-                // 0x60 = Z_X_LOC,
-                // 0x80 = Z_Y_LOC,
+                // 0x60 = [z]₁.x,
+                // 0x80 = [z]₁.y,
                 // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
 
                 // ACCUMULATOR2: −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ₃]₁
