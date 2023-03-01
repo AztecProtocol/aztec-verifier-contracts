@@ -377,14 +377,13 @@ abstract contract BaseStandardVerifier {
              *
              * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation
              * on the set H′ = H ∪ (k1 H) ∪ (k2 H) encoding the copy constraints, but which is altered on the public input indices
-             * by setting σ'(i) = k3 ωⁱ, with k3 chosen so such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
+             * by setting σ'(i) = k3 ωⁱ, with k3 chosen such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
              * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as:
              * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
              * where ℓ is the number of public inputs
              *
              * We efficiently compute the numerator and denominator now, storing them for later use.
              */
-            // Permutation polynomial?
             {
                 let beta := mload(C_BETA_LOC) // β
                 let gamma := mload(C_GAMMA_LOC) // γ
@@ -557,7 +556,6 @@ abstract contract BaseStandardVerifier {
                 // α^2 = α * α
                 let alpha_sqr := mulmod(alpha, alpha, p)
                 mstore(C_ALPHA_SQR_LOC, alpha_sqr)
-
                 // α^4 = α^2 * α^2 [stored now for later use]
                 mstore(C_ARITHMETIC_ALPHA_LOC, mulmod(alpha_sqr, alpha_sqr, p))
 
@@ -705,6 +703,7 @@ abstract contract BaseStandardVerifier {
 
             /**
              * COMPUTE ARITHMETIC SELECTOR OPENING GROUP ELEMENT
+             * @follow-up Elaborate on naming to easily match with the paper (part of step 9?)
              */
             {
                 let linear_challenge := mload(C_ARITHMETIC_ALPHA_LOC) // Owing to simplified Plonk, nu = 1,  linear_challenge = C_ARITHMETIC_ALPHA (= alpha^4)
