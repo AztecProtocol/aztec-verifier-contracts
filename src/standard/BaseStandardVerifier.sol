@@ -4,7 +4,6 @@ pragma solidity >=0.8.4;
 
 /**
  * @title Standard Plonk proof verification contract
- * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
  * https://eprint.iacr.org/2019/953.pdf
  */
 abstract contract BaseStandardVerifier {
@@ -130,6 +129,7 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
     bytes4 internal constant ERR_S = 0xf7b44074;
+
     error ERR(bytes32, bytes32, bytes32);
 
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
@@ -378,16 +378,9 @@ abstract contract BaseStandardVerifier {
              * These can be disjoined from [n] by defining σ'(i) = ζ * ωⁱ
              * Then we can define ΔPI (`DELTA_PUBLIC_INPUTS`) as:
              * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
-             * @follow-up The values for sigma and sigma' need some elaboration. I don't understand where they come from.
-             * Or at least not why they are like they are here.
-             * Below we compute the numerator and denominator separately.
-             * Why do we have this here but not in the plonk paper? Plonk paper is using a `PI` polynomial to handle this.
-             * The PI polynomial requires the
+             * We are computing the numerator and denominator and storing them for later for performance gains.
+             * @follow-up The values for σ and σ' need some elaboration. I don't understand where they come from, mostly σ.
              * @todo Make clearer what this is doing and why such that readers get the reasoning behind it.
-             * @follow-up Write out the product up here
-             * @follow-up Why is this not part of the plonk paper, but only the extra github document?
-             * Helping figuring out the "offset" that is made to the permutation argument due to the public inputs
-             * All the wires are cancelled, so we would sit back with just the residue from the public inputs.
              */
             {
                 let beta := mload(C_BETA_LOC) // β
@@ -409,7 +402,7 @@ abstract contract BaseStandardVerifier {
                 let root_1 := mulmod(beta, 0x05, p_clone) // k1.β
                 // root_2 = β * 0x0c
                 let root_2 := mulmod(beta, 0x0c, p_clone)
-                // @follow-up What is the `root_2` value called? Is it really just that we are using the coset to get non-overlapping but not name it?
+                // @follow-up What is the `root_2` value called?
                 // @note 0x05 + 0x07 == 0x0c == external coset generator
 
                 for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
@@ -423,11 +416,11 @@ abstract contract BaseStandardVerifier {
                     let t := addmod(input, gamma, p_clone)
 
                     // numerator_value *= (β.σ(i) + wᵢ + γ)
-                    // numerator_value *= (β.k1.ωⁱ + wᵢ + γ)
+                    // numerator_value *= (β.0x05.ωⁱ + wᵢ + γ)
                     numerator_value := mulmod(numerator_value, add(root_1, t), p_clone)
 
                     // denominator_value *= (β.σ'(i) + wᵢ + γ)
-                    // denominator_value *= (β.k2.ωⁱ + wᵢ + γ)
+                    // denominator_value *= (β.0x0c.ωⁱ + wᵢ + γ)
                     denominator_value := mulmod(denominator_value, add(root_2, t), p_clone)
 
                     // Multiply the roots by ω  to "move to next element" in the cosets.
@@ -583,7 +576,6 @@ abstract contract BaseStandardVerifier {
 
             /**
              * STEP 9: Compute first path of batched polynomial commitment
-             * @follow-up Update structure below to match the paper closer
              */
 
             /**
@@ -702,65 +694,47 @@ abstract contract BaseStandardVerifier {
                 // add Q1 scalar mul into grand product scalar mul
                 // Observe that ACCUMULATOR_X_LOC and ACCUMULATOR2_X_LOC are 0x40 bytes apart. Below, ACCUMULATOR2_X_LOC
                 // captures new terms Q1, Q2, and so on and they get accumulated to ACCUMULATOR_X_LOC
-                let success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        // [ACCUMULATOR_X_LOC, ACCUMULATOR_X_LOC + 0x40) = ((ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u)*[z]_1 −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ3]_1
-                        staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                    )
-                // [ACCUMULATOR2_X_LOC, ACCUMULATOR2_X_LOC + 0x40) = ā * [q_L]_1
+                // ACCUMULATOR2: ā * α^4 * [q_L]_1
+                let success := staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // Q2
                 mstore(0x00, mload(Q2_X_LOC))
                 mstore(0x20, mload(Q2_Y_LOC))
                 mstore(0x40, mulmod(mload(W2_EVAL_LOC), linear_challenge, p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+
+                // ACCUMULATOR2: b̅ * α^4 * [q_R]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // Q3
                 mstore(0x00, mload(Q3_X_LOC))
                 mstore(0x20, mload(Q3_Y_LOC))
                 mstore(0x40, mulmod(mload(W3_EVAL_LOC), linear_challenge, p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+                // ACCUMULATOR2: c̅ * α^4 * [q_O]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // QM
                 mstore(0x00, mload(QM_X_LOC))
                 mstore(0x20, mload(QM_Y_LOC))
                 mstore(0x40, mulmod(t1, mload(W2_EVAL_LOC), p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40), // ecAdd
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40) // ecMul
-                        )
-                    )
+                // ACCUMULATOR2: āb̅ * α^4 * [q_M]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // QC
                 mstore(0x00, mload(QC_X_LOC))
                 mstore(0x20, mload(QC_Y_LOC))
                 mstore(0x40, linear_challenge)
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+                // ACCUMULATOR2: α^4 * [q_C]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(ARITHMETIC_TERM_SUCCESS_FLAG, success)
             }
@@ -777,21 +751,17 @@ abstract contract BaseStandardVerifier {
                     let x := mload(T1_X_LOC)
                     let y := mload(T1_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
                     mstore(0x00, x)
                     mstore(0x20, y)
                     mstore(0x40, sub(p, mload(ZERO_POLY_LOC)))
-                    // mstore(ACCUMULATOR2_X_LOC, x)
-                    // mstore(ACCUMULATOR2_Y_LOC, y)
                 }
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+
+                // ACCUMULATOR2: - Zh(ζ) * [T_lo]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // VALIDATE T2
                 let scalar_multiplier := mload(ZETA_POW_N_LOC)
@@ -799,100 +769,100 @@ abstract contract BaseStandardVerifier {
                     let x := mload(T2_X_LOC)
                     let y := mload(T2_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mulmod(scalar_multiplier, sub(p, mload(ZERO_POLY_LOC)), p))
-
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: -Zh(ζ) * ζ^n * [T_mid]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // VALIDATE T3
                 {
                     let x := mload(T3_X_LOC)
                     let y := mload(T3_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mulmod(scalar_multiplier, mulmod(scalar_multiplier, sub(p, mload(ZERO_POLY_LOC)), p), p))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: -Zh(ζ) * ζ^2n * [T_hi]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                // Step 10
 
                 // VALIDATE W1
                 {
                     let x := mload(W1_X_LOC)
                     let y := mload(W1_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V0_LOC))
 
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: v * [a]_1
+                success := and(success, and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // VALIDATE W2
                 {
                     let x := mload(W2_X_LOC)
                     let y := mload(W2_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V1_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+
+                // ACCUMULATOR2: v^2 * [b]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // VALIDATE W3
                 {
                     let x := mload(W3_X_LOC)
                     let y := mload(W3_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V2_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: v^3 * [c]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(0x00, mload(SIGMA1_X_LOC))
                 mstore(0x20, mload(SIGMA1_Y_LOC))
                 mstore(0x40, mload(C_V3_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: v^4 * [sσ1]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(0x00, mload(SIGMA2_X_LOC))
                 mstore(0x20, mload(SIGMA2_Y_LOC))
                 mstore(0x40, mload(C_V4_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: v^5 * [sσ2]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(BATCH_OPENING_SUCCESS_FLAG, success)
             }
@@ -946,37 +916,34 @@ abstract contract BaseStandardVerifier {
                     let x := mload(PI_Z_X_LOC)
                     let y := mload(PI_Z_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
-                // compute zeta.[PI_Z] and add into accumulator
                 mstore(0x40, zeta)
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+                // compute zeta.[PI_Z] and add into accumulator
+                // ACCUMULATOR2: ζ * [Wζ]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 // VALIDATE PI_Z_OMEGA
                 {
                     let x := mload(PI_Z_OMEGA_X_LOC)
                     let y := mload(PI_Z_OMEGA_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 // compute u.zeta.omega.[PI_Z_OMEGA] and add into accumulator
                 mstore(0x40, mulmod(mulmod(u, zeta, p), mload(OMEGA_LOC), p))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, PAIRING_RHS_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: u * ζ * ω * [Wζω]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, PAIRING_RHS_X_LOC, 0x40))
 
                 mstore(0x00, mload(PI_Z_X_LOC))
                 mstore(0x20, mload(PI_Z_Y_LOC))
@@ -997,6 +964,7 @@ abstract contract BaseStandardVerifier {
                         let x := mload(RECURSIVE_P1_X_LOC)
                         let y := mload(RECURSIVE_P1_Y_LOC)
                         let xx := mulmod(x, x, q)
+                        // validate on curve
                         success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                         mstore(0x00, x)
                         mstore(0x20, y)
@@ -1010,6 +978,7 @@ abstract contract BaseStandardVerifier {
                         let x := mload(RECURSIVE_P2_X_LOC)
                         let y := mload(RECURSIVE_P2_Y_LOC)
                         let xx := mulmod(x, x, q)
+                        // validate on curve
                         success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                         mstore(0x00, x)
                         mstore(0x20, y)
