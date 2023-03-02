@@ -24,7 +24,7 @@ The UltraPlonk Verifier follows the same structure as the Standard Plonk verifie
 
 ## Generating Verification Keys and Proofs
 
-Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg, download SRS and generate verification keys.
+Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg, download SRS and generate verification keys. The bootstrap will also install foundry to `./.foundry` so you can use `./.foundry/bin/forge` if you don't already have foundry installed.
 
 # Tests
 
