@@ -7,4 +7,6 @@ ffi = true
 [fuzz]
 runs = 5
 
+solc = "0.8.18"
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

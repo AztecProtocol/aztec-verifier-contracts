@@ -14,7 +14,7 @@ contract Add2StandardTest is TestBaseStandard {
         verifier = IVerifier(address(new Add2StandardVerifier()));
         fuzzer = fuzzer.with_circuit_flavour(DifferentialFuzzer.CircuitFlavour.Add2);
 
-        PUBLIC_INPUT_COUNT = 2;
+        PUBLIC_INPUT_COUNT = 3;
 
         // Add default inputs to the fuzzer (we will override these in fuzz test)
         uint256[] memory defaultInputs = new uint256[](3);
