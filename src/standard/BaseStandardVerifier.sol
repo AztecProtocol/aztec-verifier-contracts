@@ -127,9 +127,6 @@ abstract contract BaseStandardVerifier {
     bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
-    bytes4 internal constant ERR_S = 0xf7b44074;
-    error ERR(bytes32, bytes32, bytes32);
-
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
     error RECURSIVE_PROOF_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
@@ -161,8 +158,6 @@ abstract contract BaseStandardVerifier {
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
         // @note - The order of the checks in this implementation differs from the paper to save gas.
-        // @todo - Add the ordering in here. 
-
         uint256 requiredPublicInputCount;
         assembly {
             requiredPublicInputCount := mload(NUM_INPUTS_LOC)
@@ -275,12 +270,15 @@ abstract contract BaseStandardVerifier {
                 // copy the public inputs over
                 let public_input_size := mul(mload(NUM_INPUTS_LOC), 0x20)
                 calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_inputs_start, public_input_size)
+
                 // copy W1, W2, W3 into challenge. Each point is 0x40 bytes, so load 0xc0 = 3 * 0x40 bytes
                 let proof_ptr := add(calldataload(0x04), 0x24)
                 calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), proof_ptr, 0xc0)
 
                 // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
                 let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
+
+                // β = H(initial_challenge, public_inputs, W1, W2, W3)
                 challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, challenge_bytes_size)
                 mstore(C_BETA_LOC, mod(challenge, p))
 
@@ -289,6 +287,8 @@ abstract contract BaseStandardVerifier {
                  */
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
+                // γ = H(β, 0x01)
+
                 challenge := keccak256(0x00, 0x21)
                 mstore(C_GAMMA_LOC, mod(challenge, p))
 
@@ -298,6 +298,8 @@ abstract contract BaseStandardVerifier {
                 mstore(0x00, challenge)
                 mstore(0x20, mload(Z_Y_LOC))
                 mstore(0x40, mload(Z_X_LOC))
+
+                // α = H(γ, Z)
                 challenge := keccak256(0x00, 0x60)
                 mstore(C_ALPHA_LOC, mod(challenge, p))
 
@@ -312,21 +314,20 @@ abstract contract BaseStandardVerifier {
                 mstore(0x80, mload(T2_X_LOC))
                 mstore(0xa0, mload(T3_Y_LOC))
                 mstore(0xc0, mload(T3_X_LOC))
+
+                // z = H(α, T1, T2, T3)
                 challenge := keccak256(0x00, 0xe0)
                 mstore(C_ZETA_LOC, mod(challenge, p))
 
                 /**
-                 * GENERATE NU CHALLENGES
+                 * GENERATE VEGA and NU CHALLENGES (Opening challenge)
                  */
-
-                // get a calldata pointer that points to the start of the data we want to copy
-                let calldata_ptr := add(calldataload(0x04), 0x24)
-                // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
-                // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
-                calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
-
                 mstore(0x00, challenge)
-                calldatacopy(0x20, calldata_ptr, 0xc0) // 6 * 0x20 = 0xc0
+
+                // Skip over W1, W2, W3, Z, T1, T2, T3
+                calldatacopy(0x20, add(proof_ptr, 0x1c0), 0xc0) // 6 * 0x20 = 0xc0
+
+                // v = H(z, W1_EVAL, W2_EVAL, W3_EVAL, SIGMA1_EVAL, SIGMA2_EVAL, Z_OMEGA_EVAL)
                 challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
 
                 mstore(C_V0_LOC, mod(challenge, p))
@@ -358,6 +359,7 @@ abstract contract BaseStandardVerifier {
                 mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
                 mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
 
+                // u = H(C_V5, PI_Z, PI_Z_OMEGA)
                 mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
             }
 
@@ -376,7 +378,7 @@ abstract contract BaseStandardVerifier {
              *
              * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation
              * on the set H′ = H ∪ (k1 H) ∪ (k2 H) encoding the copy constraints, but which is altered on the public input indices
-             * by setting σ'(i) = k3 ωⁱ, with k3 chosen such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
+             * by setting σ'(i) = k3 ωⁱ, with k3 chosen so such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
              * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as:
              * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
              * where ℓ is the number of public inputs
@@ -555,6 +557,7 @@ abstract contract BaseStandardVerifier {
                 // α^2 = α * α
                 let alpha_sqr := mulmod(alpha, alpha, p)
                 mstore(C_ALPHA_SQR_LOC, alpha_sqr)
+
                 // α^4 = α^2 * α^2 [stored now for later use]
                 mstore(C_ARITHMETIC_ALPHA_LOC, mulmod(alpha_sqr, alpha_sqr, p))
 
@@ -663,6 +666,7 @@ abstract contract BaseStandardVerifier {
                     mstore(0x60, x)
                     mstore(0x80, y)
                 }
+
                 // 0xa0 = (partial_grand_product + L_1 * α^2) * α + u
                 // 0xa0 = (((β.ζ + a̅ + γ) * (k1 * β.ζ + b̅ + γ) * (k2 * β.ζ + c̅ + γ)) + L_1 * α^2) * α + u
                 // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
@@ -678,6 +682,7 @@ abstract contract BaseStandardVerifier {
                         p
                     )
                 )
+
                 // 0x00 = [s_σ₃]₁.x,
                 // 0x20 = [s_σ₃]₁.y,
                 // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
@@ -701,7 +706,6 @@ abstract contract BaseStandardVerifier {
 
             /**
              * COMPUTE ARITHMETIC SELECTOR OPENING GROUP ELEMENT
-             * @follow-up Elaborate on naming to easily match with the paper (part of step 9?)
              */
             {
                 let linear_challenge := mload(C_ARITHMETIC_ALPHA_LOC) // Owing to simplified Plonk, nu = 1,  linear_challenge = C_ARITHMETIC_ALPHA (= alpha^4)
