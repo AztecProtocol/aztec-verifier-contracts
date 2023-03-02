@@ -24,7 +24,7 @@ The UltraPlonk Verifier follows the same structure as the Standard Plonk verifie
 
 ## Generating Verification Keys and Proofs
 
-Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg, download SRS and generate verification keys.
+Run `bootstrap.sh` to clone git submodules, bootstrap barretenberg, download SRS and generate verification keys. The bootstrap will also install foundry to `./.foundry` so you can use `./.foundry/bin/forge` if you don't already have foundry installed.
 
 # Tests
 
@@ -55,3 +55,22 @@ Example to run only `testValidProof` for the Standard verifier with logs:
 ```bash
 forge test --match-contract StandardTest --match-test testValidProof -vvvv
 ```
+
+## Debugging in all assembly
+
+Debugging from inside the assembly can be pretty inconvenient. The quickest way to get going is to add a custom error:
+```solidity
+bytes4 internal constant ERR_S = 0xf7b44074;
+error ERR(bytes32,bytes32,bytes32);
+```
+Where `ERR_S` is the selector (first 4 bytes of keccak256(function signature)).
+
+To revert the contract, and print values, you can then do as
+```solidity
+mstore(0x00, ERR_S) // put the selector in memory
+mstore(0x04, val_1) // add first value after selector
+mstore(0x24, val_2) // add second value after first
+mstore(0x44, val_3) // add third value after second
+revert(0x00, 0x64)  // revert with a message containing 0x64 bytes defined above
+```
+When running a test, you will then see the three values `val_1, val_2, val_3` in the console.
