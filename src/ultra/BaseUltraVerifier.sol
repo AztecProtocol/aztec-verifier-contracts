@@ -317,10 +317,6 @@ abstract contract BaseUltraVerifier {
             let q := 21888242871839275222246405745257275088696311157297823662689037894645226208583 // EC group order
             let p := 21888242871839275222246405745257275088548364400416034343698204186575808495617 // Prime field order
 
-            // Setup temporary values that will be used throughout the verification for intermediates
-            let temp0
-            let temp1
-
             /**
              * LOAD PROOF FROM CALLDATA
              */
@@ -454,7 +450,6 @@ abstract contract BaseUltraVerifier {
                 /**
                  * Generate initial challenge
                  */
-
                 mstore(0x00, shl(224, mload(N_LOC)))
                 mstore(0x04, shl(224, mload(NUM_INPUTS_LOC)))
                 let challenge := keccak256(0x00, 0x08)
@@ -485,7 +480,7 @@ abstract contract BaseUltraVerifier {
                 }
 
                 /**
-                 * Generate beta, gamma challenges
+                 * Generate beta challenge
                  */
                 mstore(0x00, challenge)
                 mstore(0x20, mload(W4_Y_LOC))
@@ -495,6 +490,9 @@ abstract contract BaseUltraVerifier {
                 challenge := keccak256(0x00, 0xa0)
                 mstore(C_BETA_LOC, mod(challenge, p))
 
+                /**
+                 * Generate gamma challenge
+                 */
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
                 challenge := keccak256(0x00, 0x21)
@@ -904,7 +902,7 @@ abstract contract BaseUltraVerifier {
                  */
                 let gamma_beta_constant := mulmod(mload(C_GAMMA_LOC), addmod(mload(C_BETA_LOC), 1, p), p)
                 let numerator := addmod(mulmod(f, mload(TABLE_TYPE_EVAL_LOC), p), mload(C_GAMMA_LOC), p)
-                temp0 := addmod(addmod(t, mulmod(t_omega, mload(C_BETA_LOC), p), p), gamma_beta_constant, p)
+                let temp0 := addmod(addmod(t, mulmod(t_omega, mload(C_BETA_LOC), p), p), gamma_beta_constant, p)
                 numerator := mulmod(numerator, temp0, p)
                 numerator := mulmod(numerator, addmod(mload(C_BETA_LOC), 1, p), p)
                 temp0 := mulmod(mload(C_ALPHA_LOC), mload(L_START_LOC), p)
@@ -929,7 +927,7 @@ abstract contract BaseUltraVerifier {
                         gamma_beta_constant,
                         p
                     )
-                temp1 := mulmod(mload(C_ALPHA_SQR_LOC), mload(L_END_LOC), p)
+                let temp1 := mulmod(mload(C_ALPHA_SQR_LOC), mload(L_END_LOC), p)
                 denominator := addmod(denominator, sub(p, temp1), p)
                 denominator := mulmod(denominator, mload(Z_LOOKUP_OMEGA_EVAL_LOC), p)
                 denominator := addmod(denominator, mulmod(temp1, mload(PLOOKUP_DELTA_LOC), p), p)
