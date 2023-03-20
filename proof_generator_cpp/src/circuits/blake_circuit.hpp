@@ -12,12 +12,10 @@ public:
     typedef plonk::stdlib::public_witness_t<Composer> public_witness_ct;
     typedef plonk::stdlib::byte_array<Composer> byte_array_ct;
 
-    // TODO: this should become an input to the circuit
     static constexpr size_t NUM_PUBLIC_INPUTS = 4;
 
     static Composer generate(std::string srs_path, uint256_t public_inputs[])
     {   
-        // todo use proper srs?
         Composer composer(srs_path);
 
         byte_array_ct input_buffer(&composer);
