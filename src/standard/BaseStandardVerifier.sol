@@ -277,7 +277,6 @@ abstract contract BaseStandardVerifier {
                 let proof_ptr := add(calldataload(0x04), 0x24)
                 calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), proof_ptr, 0xc0)
 
-
                 // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
                 let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
 
@@ -374,20 +373,20 @@ abstract contract BaseStandardVerifier {
              * @follow-up The values for σ and σ' need some elaboration. I don't understand where they come from, mostly σ.
              * @todo Make clearer what this is doing and why such that readers get the reasoning behind it.
              */
-            /** 
-             * COMPUTE PUBLIC INPUT DELTA * In the permutation argument, we will be generating a residual term from the public inputs. This will impact `r_0`. 
-             * 
-             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf), the public inputs are included by altering a selector 
+            /**
+             * COMPUTE PUBLIC INPUT DELTA * In the permutation argument, we will be generating a residual term from the public inputs. This will impact `r_0`.
+             *
+             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf), the public inputs are included by altering a selector
              * polynomial to include a polynomial `PI` encoding the public inputs. Here we use an alternative method that allows
              * for the selectors to be preprocessed by altering the grand product computation. It is also less expensive to compute
-             * for the verifier, who (for instance) otherwise might have to compute a Lagrange polynomial value, hence 
+             * for the verifier, who (for instance) otherwise might have to compute a Lagrange polynomial value, hence
              * an inversion, for each public input.
              *
-             * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation 
+             * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation
              * on the set H′ = H ∪ (k1 H) ∪ (k2 H) encoding the copy constraints, but which is altered on the public input indices
              * by setting σ'(i) = k3 ωⁱ, with k3 chosen so such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
-             * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as: 
-             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ) 
+             * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as:
+             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
              * where ℓ is the number of public inputs
              *
              * We efficiently compute the numerator and denominator now, storing them for later use.
@@ -417,7 +416,6 @@ abstract contract BaseStandardVerifier {
                 let root_2 := mulmod(beta, 0x0c, p_clone)
 
                 for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
-
                     // Load the next public input
                     let input := calldataload(public_inputs_ptr)
 
@@ -738,7 +736,6 @@ abstract contract BaseStandardVerifier {
                 // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
                 success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
-
                 /**
                  * Q2
                  */
@@ -758,13 +755,11 @@ abstract contract BaseStandardVerifier {
                 mstore(0x20, mload(Q3_Y_LOC))
                 mstore(0x40, mulmod(mload(W3_EVAL_LOC), linear_challenge, p))
 
-
                 // ACCUMULATOR2: c̅ * α^4 * [q_O]_1
                 success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
 
                 // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
                 success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
-
 
                 /**
                  * QM
@@ -778,7 +773,6 @@ abstract contract BaseStandardVerifier {
 
                 // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
                 success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
-
 
                 /**
                  * QC
@@ -928,7 +922,6 @@ abstract contract BaseStandardVerifier {
                 // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
                 success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
-
                 mstore(0x00, mload(SIGMA1_X_LOC))
                 mstore(0x20, mload(SIGMA1_Y_LOC))
                 mstore(0x40, mload(C_V3_LOC))
@@ -938,7 +931,6 @@ abstract contract BaseStandardVerifier {
 
                 // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
                 success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
-
 
                 mstore(0x00, mload(SIGMA2_X_LOC))
                 mstore(0x20, mload(SIGMA2_Y_LOC))
@@ -1000,7 +992,7 @@ abstract contract BaseStandardVerifier {
                 let u := mload(C_U_LOC)
                 let zeta := mload(C_ZETA_LOC)
                 let success
-                
+
                 /**
                  * VALIDATE PI_Z
                  */
