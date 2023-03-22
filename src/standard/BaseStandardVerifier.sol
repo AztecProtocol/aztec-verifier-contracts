@@ -371,21 +371,26 @@ abstract contract BaseStandardVerifier {
              */
 
             /**
-             * COMPUTE PUBLIC INPUT DELTA
-             * In the permutation argument, we will be generating some "residue" from the public inputs. This will impact `r_0`
-             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf) we take this into account by using a `PI` polynomial.
-             * However, computing the `PI` polynomial require us to compute `L_1(zeta),...,L_m(zeta)` for `m` public inputs.
-             * This could be expensive, and we can actually compute the `L_m(zeta)` only, and then use a `DELTA_PUBLIC_INPUTS`
-             * get us to the same result.
-             * Let β and γ be challenges, and wᵢ the i'th public input, :
-             * Let σ be the permutation and σ' be when applying σ and then mapping it into H' (H′ = H ∪ (k1 H) ∪ (k2 H)).
-             * For the public inputs, let σ'(i) = ζᵢ where ζᵢ are distinct elements disjoint from [n].
-             * These can be disjoined from [n] by defining σ'(i) = ζ * ωⁱ
-             * Then we can define ΔPI (`DELTA_PUBLIC_INPUTS`) as:
-             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
-             * We are computing the numerator and denominator and storing them for later for performance gains.
              * @follow-up The values for σ and σ' need some elaboration. I don't understand where they come from, mostly σ.
              * @todo Make clearer what this is doing and why such that readers get the reasoning behind it.
+             */
+            /** 
+             * COMPUTE PUBLIC INPUT DELTA * In the permutation argument, we will be generating a residual term from the public inputs. This will impact `r_0`. 
+             * 
+             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf), the public inputs are included by altering a selector 
+             * polynomial to include a polynomial `PI` encoding the public inputs. Here we use an alternative method that allows
+             * for the selectors to be preprocessed by altering the grand product computation. It is also less expensive to compute
+             * for the verifier, who (for instance) otherwise might have to compute a Lagrange polynomial value, hence 
+             * an inversion, for each public input.
+             *
+             * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation 
+             * on the set H′ = H ∪ (k1 H) ∪ (k2 H) encoding the copy constraints, but which is altered on the public input indices
+             * by setting σ'(i) = k3 ωⁱ, with k3 chosen so such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
+             * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as: 
+             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ) 
+             * where ℓ is the number of public inputs
+             *
+             * We efficiently compute the numerator and denominator now, storing them for later use.
              */
             {
                 let beta := mload(C_BETA_LOC) // β
@@ -407,12 +412,12 @@ abstract contract BaseStandardVerifier {
                 let root_1 := mulmod(beta, 0x05, p_clone) // k1.β
 
                 // root_2 = β * 0x0c
+                // k1 + k2 == 0x05 + 0x07 == 0x0c == external coset generator
+                // root 2 here is set to the extenal coset generator as an optimisation, derived form addition of two cosets as noted above
                 let root_2 := mulmod(beta, 0x0c, p_clone)
 
-                // @follow-up What is the `root_2` value called?
-                // @note 0x05 + 0x07 == 0x0c == external coset generator
-
                 for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
+
                     // Load the next public input
                     let input := calldataload(public_inputs_ptr)
 
@@ -430,7 +435,7 @@ abstract contract BaseStandardVerifier {
                     // denominator_value *= (β.0x0c.ωⁱ + wᵢ + γ)
                     denominator_value := mulmod(denominator_value, add(root_2, t), p_clone)
 
-                    // Multiply the roots by ω  to "move to next element" in the cosets.
+                    // Multiply the roots by ω to "move to next element" in the cosets.
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
                 }
@@ -446,7 +451,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * STEP 5 and 6: Compute lagrange- and vanishing poly fractions
+             * STEP 5 and 6: Compute lagrange and vanishing poly fractions
              */
             {
                 let zeta := mload(C_ZETA_LOC)
@@ -636,10 +641,10 @@ abstract contract BaseStandardVerifier {
 
                 // witness_term = c̅ + γ
                 witness_term := addmod(mload(W3_EVAL_LOC), gamma, p)
-                let k2_beta_zeta_witness := addmod(add(k1_beta_zeta, beta_zeta), witness_term, p)
+                let k1_bz_bz_witness := addmod(add(k1_beta_zeta, beta_zeta), witness_term, p)
 
-                // partial_grand_product *= (k2 * β.ζ + c̅ + γ) // [k2 = k1 + 1]
-                partial_grand_product := mulmod(partial_grand_product, k2_beta_zeta_witness, p)
+                // partial_grand_product *= ((k1 * β.ζ) + β.ζ + c̅ + γ) // [k2 = k1 + 1]
+                partial_grand_product := mulmod(partial_grand_product, k1_bz_bz_witness, p)
 
                 let linear_challenge := alpha // Owing to the simplified Plonk, nu = 1, linear_challenge = nu * alpha = alpha
 
@@ -648,7 +653,7 @@ abstract contract BaseStandardVerifier {
                 mstore(0x20, mload(SIGMA3_Y_LOC))
 
                 // 0x40 = -((s̅_σ₁ * β + a̅ + γ) * (s̅_σ₂ * β + b̅ + γ) * z̅_ω * β) * α
-                // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
+                //      = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
                 mstore(
                     0x40,
                     mulmod(
