@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
-// gas cost at 5000 optimizer runs 0.8.10: 287,589 (includes 21,000 base cost)
 
 /**
  * @title Standard Plonk proof verification contract
- * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
+ * https://eprint.iacr.org/2019/953.pdf
  */
 abstract contract BaseStandardVerifier {
     // VERIFICATION KEY MEMORY LOCATIONS
@@ -70,65 +69,66 @@ abstract contract BaseStandardVerifier {
     uint256 internal constant C_ALPHA_LOC = 0x200 + 0x340 + 0x300 + 0x40;
     uint256 internal constant C_ARITHMETIC_ALPHA_LOC = 0x200 + 0x340 + 0x300 + 0x60;
     uint256 internal constant C_ZETA_LOC = 0x200 + 0x340 + 0x300 + 0x80;
-    uint256 internal constant C_CURRENT_LOC = 0x200 + 0x340 + 0x300 + 0xa0;
-    uint256 internal constant C_V0_LOC = 0x200 + 0x340 + 0x300 + 0xc0;
-    uint256 internal constant C_V1_LOC = 0x200 + 0x340 + 0x300 + 0xe0;
-    uint256 internal constant C_V2_LOC = 0x200 + 0x340 + 0x300 + 0x100;
-    uint256 internal constant C_V3_LOC = 0x200 + 0x340 + 0x300 + 0x120;
-    uint256 internal constant C_V4_LOC = 0x200 + 0x340 + 0x300 + 0x140;
-    uint256 internal constant C_V5_LOC = 0x200 + 0x340 + 0x300 + 0x160;
-    uint256 internal constant C_U_LOC = 0x200 + 0x340 + 0x300 + 0x180;
+    uint256 internal constant C_V0_LOC = 0x200 + 0x340 + 0x300 + 0xa0;
+    uint256 internal constant C_V1_LOC = 0x200 + 0x340 + 0x300 + 0xc0;
+    uint256 internal constant C_V2_LOC = 0x200 + 0x340 + 0x300 + 0xe0;
+    uint256 internal constant C_V3_LOC = 0x200 + 0x340 + 0x300 + 0x100;
+    uint256 internal constant C_V4_LOC = 0x200 + 0x340 + 0x300 + 0x120;
+    uint256 internal constant C_V5_LOC = 0x200 + 0x340 + 0x300 + 0x140;
+    uint256 internal constant C_U_LOC = 0x200 + 0x340 + 0x300 + 0x160;
     // 13
 
     // ### LOCAL VARIABLES MEMORY OFFSETS
-    uint256 internal constant DELTA_NUMERATOR_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x00;
-    uint256 internal constant DELTA_DENOMINATOR_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x20;
-    uint256 internal constant ZETA_POW_N_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x40;
-    uint256 internal constant PUBLIC_INPUT_DELTA_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x60;
-    uint256 internal constant ZERO_POLY_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x80;
-    uint256 internal constant L_START_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0xa0;
-    uint256 internal constant L_END_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0xc0;
-    uint256 internal constant R_ZERO_EVAL_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0xe0;
-    uint256 internal constant ACCUMULATOR_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x100;
-    uint256 internal constant ACCUMULATOR_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x120;
-    uint256 internal constant ACCUMULATOR2_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x140;
-    uint256 internal constant ACCUMULATOR2_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x160;
-    uint256 internal constant PAIRING_LHS_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x180;
-    uint256 internal constant PAIRING_LHS_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x1a0;
-    uint256 internal constant PAIRING_RHS_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x1c0;
-    uint256 internal constant PAIRING_RHS_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x1e0;
+    uint256 internal constant DELTA_NUMERATOR_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x00;
+    uint256 internal constant DELTA_DENOMINATOR_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x20;
+    uint256 internal constant ZETA_POW_N_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x40;
+    uint256 internal constant PUBLIC_INPUT_DELTA_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x60;
+    uint256 internal constant ZERO_POLY_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x80;
+    uint256 internal constant L_START_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0xa0;
+    uint256 internal constant L_END_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0xc0;
+    uint256 internal constant R_ZERO_EVAL_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0xe0;
+    uint256 internal constant ACCUMULATOR_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x100;
+    uint256 internal constant ACCUMULATOR_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x120;
+    uint256 internal constant ACCUMULATOR2_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x140;
+    uint256 internal constant ACCUMULATOR2_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x160;
+    uint256 internal constant PAIRING_LHS_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x180;
+    uint256 internal constant PAIRING_LHS_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x1a0;
+    uint256 internal constant PAIRING_RHS_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x1c0;
+    uint256 internal constant PAIRING_RHS_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x1e0;
     // 16
 
     // ### SUCCESS FLAG MEMORY LOCATIONS
-    uint256 internal constant GRAND_PRODUCT_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0x00;
-    uint256 internal constant ARITHMETIC_TERM_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0x20;
-    uint256 internal constant BATCH_OPENING_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0x40;
-    uint256 internal constant OPENING_COMMITMENT_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0x60;
-    uint256 internal constant PAIRING_PREAMBLE_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0x80;
-    uint256 internal constant PAIRING_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xa0;
-    uint256 internal constant RESULT_FLAG = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xc0;
+    uint256 internal constant GRAND_PRODUCT_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0x00;
+    uint256 internal constant ARITHMETIC_TERM_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0x20;
+    uint256 internal constant BATCH_OPENING_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0x40;
+    uint256 internal constant OPENING_COMMITMENT_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0x60;
+    uint256 internal constant PAIRING_PREAMBLE_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0x80;
+    uint256 internal constant PAIRING_SUCCESS_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xa0;
+    uint256 internal constant RESULT_FLAG = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xc0;
     // 7
 
     // misc stuff
-    uint256 internal constant OMEGA_INVERSE_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0;
-    uint256 internal constant C_ALPHA_SQR_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0x20;
+    uint256 internal constant OMEGA_INVERSE_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0;
+    uint256 internal constant C_ALPHA_SQR_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0x20;
     // 2
 
     // ### RECURSION VARIABLE MEMORY LOCATIONS
-    uint256 internal constant RECURSIVE_P1_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0x40;
-    uint256 internal constant RECURSIVE_P1_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0x60;
-    uint256 internal constant RECURSIVE_P2_X_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0x80;
-    uint256 internal constant RECURSIVE_P2_Y_LOC = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0xa0;
+    uint256 internal constant RECURSIVE_P1_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0x40;
+    uint256 internal constant RECURSIVE_P1_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0x60;
+    uint256 internal constant RECURSIVE_P2_X_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0x80;
+    uint256 internal constant RECURSIVE_P2_Y_LOC = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0xa0;
 
-    uint256 internal constant PUBLIC_INPUTS_HASH_LOCATION = 0x200 + 0x340 + 0x300 + 0x1a0 + 0x200 + 0xe0 + 0xc0;
+    uint256 internal constant PUBLIC_INPUTS_HASH_LOCATION = 0x200 + 0x340 + 0x300 + 0x180 + 0x200 + 0xe0 + 0xc0;
 
     bytes4 internal constant PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR = 0xeba9f4a6;
+    bytes4 internal constant RECURSIVE_PROOF_INVALID_BN128_G1_POINT_SELECTOR = 0x5b6552fb;
     bytes4 internal constant PUBLIC_INPUT_GE_P_SELECTOR = 0x374a972f;
     bytes4 internal constant MOD_EXP_FAILURE_SELECTOR = 0xf894a7bc;
     bytes4 internal constant PAIRING_PREAMBLE_FAILURE_SELECTOR = 0x58b33075;
     bytes4 internal constant PROOF_FAILURE_SELECTOR = 0x0711fcec;
 
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
+    error RECURSIVE_PROOF_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
     error MOD_EXP_FAILURE();
@@ -157,7 +157,7 @@ abstract contract BaseStandardVerifier {
      */
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
-
+        // @note - The order of the checks in this implementation differs from the paper to save gas.
         uint256 requiredPublicInputCount;
         assembly {
             requiredPublicInputCount := mload(NUM_INPUTS_LOC)
@@ -178,29 +178,32 @@ abstract contract BaseStandardVerifier {
                 // We add 0x24 to skip the selector + the length of the proof
                 let data_ptr := add(calldataload(0x04), 0x24)
 
-                mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q))
+                // The proof is stored differently from the paper with the following order:
+                // w1, w2 and w3 are named as such rather than as a, b and c to allow for constructions with an arbitrary number of wires.
+                // [a]1, [b]1, [c]1, [z]₁, [tlo]1, [tmid]1, [thi]1, a̅, b̅, c̅, s̅_σ₁, s̅_σ₂, z̅_ω,  [W𝑧]1, [W𝑧ω]1
+                mstore(W1_X_LOC, mod(calldataload(add(data_ptr, 0x20)), q)) // [a]1
                 mstore(W1_Y_LOC, mod(calldataload(data_ptr), q))
-                mstore(W2_X_LOC, mod(calldataload(add(data_ptr, 0x60)), q))
+                mstore(W2_X_LOC, mod(calldataload(add(data_ptr, 0x60)), q)) // [b]1
                 mstore(W2_Y_LOC, mod(calldataload(add(data_ptr, 0x40)), q))
-                mstore(W3_X_LOC, mod(calldataload(add(data_ptr, 0xa0)), q))
+                mstore(W3_X_LOC, mod(calldataload(add(data_ptr, 0xa0)), q)) // [c]1
                 mstore(W3_Y_LOC, mod(calldataload(add(data_ptr, 0x80)), q))
-                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q))
+                mstore(Z_X_LOC, mod(calldataload(add(data_ptr, 0xe0)), q)) // [z]₁
                 mstore(Z_Y_LOC, mod(calldataload(add(data_ptr, 0xc0)), q))
-                mstore(T1_X_LOC, mod(calldataload(add(data_ptr, 0x120)), q))
+                mstore(T1_X_LOC, mod(calldataload(add(data_ptr, 0x120)), q)) // [tlo]1
                 mstore(T1_Y_LOC, mod(calldataload(add(data_ptr, 0x100)), q))
-                mstore(T2_X_LOC, mod(calldataload(add(data_ptr, 0x160)), q))
+                mstore(T2_X_LOC, mod(calldataload(add(data_ptr, 0x160)), q)) // [tmid]1
                 mstore(T2_Y_LOC, mod(calldataload(add(data_ptr, 0x140)), q))
-                mstore(T3_X_LOC, mod(calldataload(add(data_ptr, 0x1a0)), q))
+                mstore(T3_X_LOC, mod(calldataload(add(data_ptr, 0x1a0)), q)) // [thi]1
                 mstore(T3_Y_LOC, mod(calldataload(add(data_ptr, 0x180)), q))
-                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p))
-                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p))
-                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p))
-                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p))
-                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p))
-                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p))
-                mstore(PI_Z_X_LOC, mod(calldataload(add(data_ptr, 0x2a0)), q))
+                mstore(W1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1c0)), p)) // a̅
+                mstore(W2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x1e0)), p)) // b̅
+                mstore(W3_EVAL_LOC, mod(calldataload(add(data_ptr, 0x200)), p)) // c̅
+                mstore(SIGMA1_EVAL_LOC, mod(calldataload(add(data_ptr, 0x220)), p)) // s̅_σ₁
+                mstore(SIGMA2_EVAL_LOC, mod(calldataload(add(data_ptr, 0x240)), p)) // s̅_σ₂
+                mstore(Z_OMEGA_EVAL_LOC, mod(calldataload(add(data_ptr, 0x260)), p)) // z̅_ω
+                mstore(PI_Z_X_LOC, mod(calldataload(add(data_ptr, 0x2a0)), q)) // [W𝑧]1
                 mstore(PI_Z_Y_LOC, mod(calldataload(add(data_ptr, 0x280)), q))
-                mstore(PI_Z_OMEGA_X_LOC, mod(calldataload(add(data_ptr, 0x2e0)), q))
+                mstore(PI_Z_OMEGA_X_LOC, mod(calldataload(add(data_ptr, 0x2e0)), q)) // [W𝑧ω]1
                 mstore(PI_Z_OMEGA_Y_LOC, mod(calldataload(add(data_ptr, 0x2c0)), q))
             }
 
@@ -240,45 +243,52 @@ abstract contract BaseStandardVerifier {
 
                     // validate these are valid bn128 G1 points
                     if iszero(and(and(lt(x0, q), lt(x1, q)), and(lt(y0, q), lt(y1, q)))) {
-                        mstore(0x00, PUBLIC_INPUT_INVALID_BN128_G1_POINT_SELECTOR)
+                        mstore(0x00, RECURSIVE_PROOF_INVALID_BN128_G1_POINT_SELECTOR)
                         revert(0x00, 0x04)
                     }
                 }
             }
 
+            /**
+             * STEP 4. Generate challenges
+             */
             {
                 /**
                  * Generate initial challenge
-                 *
                  */
-
                 mstore(0x00, shl(224, mload(N_LOC)))
                 mstore(0x04, shl(224, mload(NUM_INPUTS_LOC)))
                 let challenge := keccak256(0x00, 0x08)
+                mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
 
                 /**
-                 * Generate beta, gamma challenges
+                 * Generate beta challenge
                  */
-                mstore(PUBLIC_INPUTS_HASH_LOCATION, challenge)
                 // The public input location is stored at 0x24, we then add 0x24 to skip selector and the length of public inputs
                 let public_inputs_start := add(calldataload(0x24), 0x24)
+
                 // copy the public inputs over
                 let public_input_size := mul(mload(NUM_INPUTS_LOC), 0x20)
                 calldatacopy(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_inputs_start, public_input_size)
 
                 // copy W1, W2, W3 into challenge. Each point is 0x40 bytes, so load 0xc0 = 3 * 0x40 bytes
-                let w_start := add(calldataload(0x04), 0x24)
-                calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), w_start, 0xc0)
+                let proof_ptr := add(calldataload(0x04), 0x24)
+                calldatacopy(add(add(PUBLIC_INPUTS_HASH_LOCATION, 0x20), public_input_size), proof_ptr, 0xc0)
 
                 // Challenge is the old challenge + public inputs + W1, W2, W3 (0x20 + public_input_size + 0xc0)
                 let challenge_bytes_size := add(0x20, add(public_input_size, 0xc0))
 
+                // β = H(initial_challenge, public_inputs, W1, W2, W3)
                 challenge := keccak256(PUBLIC_INPUTS_HASH_LOCATION, challenge_bytes_size)
-
                 mstore(C_BETA_LOC, mod(challenge, p))
 
+                /**
+                 * Generate gamma challenge
+                 */
                 mstore(0x00, challenge)
                 mstore8(0x20, 0x01)
+                // γ = H(β, 0x01)
+
                 challenge := keccak256(0x00, 0x21)
                 mstore(C_GAMMA_LOC, mod(challenge, p))
 
@@ -288,10 +298,14 @@ abstract contract BaseStandardVerifier {
                 mstore(0x00, challenge)
                 mstore(0x20, mload(Z_Y_LOC))
                 mstore(0x40, mload(Z_X_LOC))
+
+                // α = H(γ, Z)
                 challenge := keccak256(0x00, 0x60)
                 mstore(C_ALPHA_LOC, mod(challenge, p))
+
                 /**
-                 * Generate zeta challenge
+                 * Generate zeta challenge (Evaluation challange)
+                 * Using mstore instead of calldatacopy to read the ones where mod have been applied
                  */
                 mstore(0x00, challenge)
                 mstore(0x20, mload(T1_Y_LOC))
@@ -300,10 +314,53 @@ abstract contract BaseStandardVerifier {
                 mstore(0x80, mload(T2_X_LOC))
                 mstore(0xa0, mload(T3_Y_LOC))
                 mstore(0xc0, mload(T3_X_LOC))
-                challenge := keccak256(0x00, 0xe0)
 
+                // z = H(α, T1, T2, T3)
+                challenge := keccak256(0x00, 0xe0)
                 mstore(C_ZETA_LOC, mod(challenge, p))
-                mstore(C_CURRENT_LOC, challenge)
+
+                /**
+                 * GENERATE VEGA and NU CHALLENGES (Opening challenge)
+                 */
+                mstore(0x00, challenge)
+
+                // Skip over W1, W2, W3, Z, T1, T2, T3
+                calldatacopy(0x20, add(proof_ptr, 0x1c0), 0xc0) // 6 * 0x20 = 0xc0
+
+                // v = H(z, W1_EVAL, W2_EVAL, W3_EVAL, SIGMA1_EVAL, SIGMA2_EVAL, Z_OMEGA_EVAL)
+                challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
+
+                mstore(C_V0_LOC, mod(challenge, p))
+
+                mstore(0x00, challenge)
+                mstore8(0x20, 0x01)
+                mstore(C_V1_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x02)
+                mstore(C_V2_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x03)
+                mstore(C_V3_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x04)
+                mstore(C_V4_LOC, mod(keccak256(0x00, 0x21), p))
+
+                mstore8(0x20, 0x05)
+                challenge := keccak256(0x00, 0x21)
+                mstore(C_V5_LOC, mod(challenge, p))
+
+                /**
+                 * GENERATE SEPARATOR CHALLENGE (Multipoint evaluation challenge)
+                 * Using mstore instead of calldatacopy to read the ones where mod have been applied
+                 */
+                mstore(0x00, challenge)
+                mstore(0x20, mload(PI_Z_Y_LOC))
+                mstore(0x40, mload(PI_Z_X_LOC))
+                mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
+                mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
+
+                // u = H(C_V5, PI_Z, PI_Z_OMEGA)
+                mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
             }
 
             /**
@@ -311,80 +368,74 @@ abstract contract BaseStandardVerifier {
              */
 
             /**
-             * COMPUTE PUBLIC INPUT DELTA
+             * COMPUTE PUBLIC INPUT DELTA * In the permutation argument, we will be generating a residual term from the public inputs. This will impact `r_0`.
+             *
+             * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf), the public inputs are included by altering a selector
+             * polynomial to include a polynomial `PI` encoding the public inputs. Here we use an alternative method that allows
+             * for the selectors to be preprocessed by altering the grand product computation. It is also less expensive to compute
+             * for the verifier, who (for instance) otherwise might have to compute a Lagrange polynomial value, hence
+             * an inversion, for each public input.
+             *
+             * Let β and γ be challenges, and wᵢ the i'th public input, i = 0, ... , num_pub_inputs-1. Let σ' be the permutation
+             * on the set H′ = H ∪ (k1 H) ∪ (k2 H) encoding the copy constraints, but which is altered on the public input indices
+             * by setting σ'(i) = k3 ωⁱ, with k3 chosen so such that k3 H is disjoint from H' and ω is the generator of the roots of unity.
+             * Then we can define the field elementΔ_PI (`DELTA_PUBLIC_INPUTS`) as:
+             * ΔPI = ∏ᵢ∈ℓ(wᵢ + β σ(i) + γ) / ∏ᵢ∈ℓ(wᵢ + β σ'(i) + γ)
+             * where ℓ is the number of public inputs
+             *
+             * We efficiently compute the numerator and denominator now, storing them for later use.
              */
             {
-                let gamma := mload(C_GAMMA_LOC)
-                let work_root := mload(OMEGA_LOC)
-                let endpoint := sub(mul(mload(NUM_INPUTS_LOC), 0x20), 0x20)
-                let public_inputs
-                let root_1 := mload(C_BETA_LOC)
-                let root_2 := root_1
+                let beta := mload(C_BETA_LOC) // β
+                let gamma := mload(C_GAMMA_LOC) // γ
+                let work_root := mload(OMEGA_LOC) // ω
                 let numerator_value := 1
                 let denominator_value := 1
 
                 let p_clone := p // move p to the front of the stack
-                let valid := true
+                let valid_inputs := true
 
-                root_1 := mulmod(root_1, 0x05, p_clone) // k1.beta
-                root_2 := mulmod(root_2, 0x07, p_clone) // 0x05 + 0x07 = 0x0c = external coset generator
+                // Load the starting point of the public inputs (jump over the selector and the length of public inputs [0x24])
+                let public_inputs_ptr := add(calldataload(0x24), 0x24)
 
-                public_inputs := add(calldataload(0x24), 0x24)
-                endpoint := add(endpoint, public_inputs)
+                // endpoint_ptr = public_inputs_ptr + num_inputs * 0x20. // every public input is 0x20 bytes
+                let endpoint_ptr := add(public_inputs_ptr, mul(mload(NUM_INPUTS_LOC), 0x20))
 
-                for {} lt(public_inputs, endpoint) {} {
-                    let input0 := calldataload(public_inputs)
-                    let N0 := add(root_1, add(input0, gamma))
-                    let D0 := add(root_2, N0) // 4x overloaded
+                // root_1 = β * 0x05
+                let root_1 := mulmod(beta, 0x05, p_clone) // k1.β
 
+                // root_2 = β * 0x0c
+                // k1 + k2 == 0x05 + 0x07 == 0x0c == external coset generator
+                // root 2 here is set to the extenal coset generator as an optimisation, derived form addition of two cosets as noted above
+                let root_2 := mulmod(beta, 0x0c, p_clone)
+
+                for {} lt(public_inputs_ptr, endpoint_ptr) { public_inputs_ptr := add(public_inputs_ptr, 0x20) } {
+                    // Load the next public input
+                    let input := calldataload(public_inputs_ptr)
+
+                    // check that wᵢ < p (delays check to the end of the loop for gas savings for success case)
+                    valid_inputs := and(valid_inputs, lt(input, p_clone))
+
+                    // t0 = wᵢ + γ
+                    let t := addmod(input, gamma, p_clone)
+
+                    // numerator_value *= (β.σ(i) + wᵢ + γ)
+                    // numerator_value *= (β.0x05.ωⁱ + wᵢ + γ)
+                    numerator_value := mulmod(numerator_value, add(root_1, t), p_clone)
+
+                    // denominator_value *= (β.σ'(i) + wᵢ + γ)
+                    // denominator_value *= (β.0x0c.ωⁱ + wᵢ + γ)
+                    denominator_value := mulmod(denominator_value, add(root_2, t), p_clone)
+
+                    // Multiply the roots by ω to "move to next element" in the cosets.
                     root_1 := mulmod(root_1, work_root, p_clone)
                     root_2 := mulmod(root_2, work_root, p_clone)
-
-                    let input1 := calldataload(add(public_inputs, 0x20))
-                    let N1 := add(root_1, add(input1, gamma))
-
-                    denominator_value := mulmod(mulmod(D0, denominator_value, p_clone), add(N1, root_2), p_clone)
-                    numerator_value := mulmod(mulmod(N1, N0, p_clone), numerator_value, p_clone)
-
-                    root_1 := mulmod(root_1, work_root, p_clone)
-                    root_2 := mulmod(root_2, work_root, p_clone)
-
-                    valid := and(valid, and(lt(input0, p_clone), lt(input1, p_clone)))
-                    public_inputs := add(public_inputs, 0x40)
-
-                    // validate public inputs are field elements (i.e. < p)
-                    if iszero(and(lt(input0, p_clone), lt(input1, p_clone))) {
-                        mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
                 }
 
-                endpoint := add(endpoint, 0x20)
-                for {} lt(public_inputs, endpoint) { public_inputs := add(public_inputs, 0x20) } {
-                    let input0 := calldataload(public_inputs)
-
-                    // validate public inputs are field elements (i.e. < p)
-                    if iszero(lt(input0, p_clone)) {
-                        mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
-
-                    valid := and(valid, lt(input0, p_clone))
-                    let T0 := addmod(input0, gamma, p_clone)
-                    numerator_value :=
-                        mulmod(
-                            numerator_value,
-                            add(root_1, T0), // 0x05 = coset_generator0
-                            p_clone
-                        )
-                    denominator_value :=
-                        mulmod(
-                            denominator_value,
-                            add(add(root_1, root_2), T0), // 0x0c = coset_generator7
-                            p_clone
-                        )
-                    root_1 := mulmod(root_1, work_root, p_clone)
-                    root_2 := mulmod(root_2, work_root, p_clone)
+                // Revert if not all public inputs are field elements (i.e. < p)
+                if iszero(valid_inputs) {
+                    mstore(0x00, PUBLIC_INPUT_GE_P_SELECTOR)
+                    revert(0x00, 0x04)
                 }
 
                 mstore(DELTA_NUMERATOR_LOC, numerator_value)
@@ -392,7 +443,7 @@ abstract contract BaseStandardVerifier {
             }
 
             /**
-             * Compute lagrange poly and vanishing poly fractions
+             * STEP 5 and 6: Compute lagrange and vanishing poly fractions
              */
             {
                 let zeta := mload(C_ZETA_LOC)
@@ -469,104 +520,75 @@ abstract contract BaseStandardVerifier {
 
                 accumulator := mulmod(mulmod(accumulator, accumulator, p), mload(DELTA_DENOMINATOR_LOC), p)
 
+                // Compute the values where we needed inverses
+                // public_input_delta = delta_numerator * accumulator
                 mstore(PUBLIC_INPUT_DELTA_LOC, mulmod(mload(DELTA_NUMERATOR_LOC), accumulator, p))
+
+                // z_h = vanishing_numerator * t_0
                 mstore(ZERO_POLY_LOC, mulmod(vanishing_numerator, t0, p))
+
+                // l_start = lagrange_numerator * t_1
                 mstore(L_START_LOC, mulmod(lagrange_numerator, t1, p))
+
+                // l_end = lagrange_numerator * t_2
                 mstore(L_END_LOC, mulmod(lagrange_numerator, t2, p))
             }
 
             /**
-             * COMPUTE CONSTANT TERM (r_0) OF LINEARISATION POLYNOMIAL
+             * STEP 8: COMPUTE CONSTANT TERM (r_0) OF LINEARISATION POLYNOMIAL
              */
             {
                 let alpha := mload(C_ALPHA_LOC)
                 let beta := mload(C_BETA_LOC)
                 let gamma := mload(C_GAMMA_LOC)
-                let r_0 :=
-                    sub(
-                        p,
-                        mulmod(
-                            mulmod(
-                                mulmod(
-                                    add(add(mload(W1_EVAL_LOC), gamma), mulmod(beta, mload(SIGMA1_EVAL_LOC), p)),
-                                    add(add(mload(W2_EVAL_LOC), gamma), mulmod(beta, mload(SIGMA2_EVAL_LOC), p)),
-                                    p
-                                ),
-                                add(mload(W3_EVAL_LOC), gamma),
-                                p
-                            ),
-                            mload(Z_OMEGA_EVAL_LOC),
-                            p
-                        )
-                    )
-                // r_0 = -(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω
+
+                // r_0_0 = (ā + βs̄_σ1 + γ)
+                let r_0_0 := add(add(mload(W1_EVAL_LOC), mulmod(beta, mload(SIGMA1_EVAL_LOC), p)), gamma)
+
+                // r_0_1 = (b̄ + βs̄_σ2 + γ)
+                let r_0_1 := add(add(mload(W2_EVAL_LOC), mulmod(beta, mload(SIGMA2_EVAL_LOC), p)), gamma)
+
+                // r_0_2 = (c̄ + γ)
+                let r_0_2 := add(mload(W3_EVAL_LOC), gamma)
+
+                // r_0_s = (ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω
+                let r_0_s := mulmod(mulmod(mulmod(r_0_0, r_0_1, p), r_0_2, p), mload(Z_OMEGA_EVAL_LOC), p)
+
+                // α^2 = α * α
                 let alpha_sqr := mulmod(alpha, alpha, p)
                 mstore(C_ALPHA_SQR_LOC, alpha_sqr)
+
+                // α^4 = α^2 * α^2 [stored now for later use]
                 mstore(C_ARITHMETIC_ALPHA_LOC, mulmod(alpha_sqr, alpha_sqr, p))
+
+                // l_1_a2 = L_1 * α^2
+                let l_1_a2 := mulmod(mload(L_START_LOC), alpha_sqr, p)
+
+                // l_n_a = L_n * α
+                let l_n_a := mulmod(mload(L_END_LOC), alpha, p)
+
+                // t_0 = z̄_ω - ∆PI
+                let t_0 := addmod(mload(Z_OMEGA_EVAL_LOC), sub(p, mload(PUBLIC_INPUT_DELTA_LOC)), p)
+
+                // @note that our r_0 looks different from the paper.
+                // This related to the public input delta that we mentioned earlier.
+                // So we are replacing PI with (z̄_ω - ∆PI) * L_n * α^2.
+                // @note that our r_0 differs on the power of alpha from the paper. The alpha is a challenge
+                // so having a different challenge is fine, as long as both verifier and prover use the same.
+
+                // r_0 = α * (t_0 * l_n_a - l_1_a2 - r_0_s)
+                // r_0 = α * ((z_ω - ∆PI) * L_n * α - (L_1 * α^2) - (ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω))
+                // r_0 = (z_ω - ∆PI) * L_n * α^2 - L_1 * α^3 - α(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)(c̄ + γ)z̄_ω)
 
                 mstore(
                     R_ZERO_EVAL_LOC,
-                    mulmod(
-                        addmod(
-                            addmod(r_0, sub(p, mulmod(mload(L_START_LOC), alpha_sqr, p)), p),
-                            mulmod(
-                                mulmod(mload(L_END_LOC), alpha, p),
-                                addmod(mload(Z_OMEGA_EVAL_LOC), sub(p, mload(PUBLIC_INPUT_DELTA_LOC)), p),
-                                p
-                            ),
-                            p
-                        ),
-                        alpha,
-                        p
-                    )
+                    mulmod(addmod(mulmod(t_0, l_n_a, p), addmod(sub(p, l_1_a2), sub(p, r_0_s), p), p), alpha, p)
                 )
             }
 
             /**
-             * GENERATE NU AND SEPARATOR CHALLENGES
+             * STEP 9: Compute first path of batched polynomial commitment
              */
-            {
-                let current_challenge := mload(C_CURRENT_LOC)
-                // get a calldata pointer that points to the start of the data we want to copy
-                let calldata_ptr := add(calldataload(0x04), 0x24)
-                // There are SEVEN G1 group elements added into the transcript in the `beta` round, that we need to skip over
-                // W1, W2, W3 (W4), Z, T1, T2, T3, (T4)
-                calldata_ptr := add(calldata_ptr, 0x1c0) // 7 * 0x40 = 0x1c0
-
-                mstore(0x00, current_challenge)
-                calldatacopy(0x20, calldata_ptr, 0xc0) // 6 * 0x20 = 0xc0
-                let challenge := keccak256(0x00, 0xe0) // hash length = 0xe0 (0x20 + num field elements), we include the previous challenge in the hash
-
-                mstore(C_V0_LOC, mod(challenge, p))
-
-                mstore(0x00, challenge)
-                mstore8(0x20, 0x01)
-                mstore(C_V1_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x02)
-                mstore(C_V2_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x03)
-                mstore(C_V3_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x04)
-                mstore(C_V4_LOC, mod(keccak256(0x00, 0x21), p))
-
-                mstore8(0x20, 0x05)
-                challenge := keccak256(0x00, 0x21)
-                mstore(C_V5_LOC, mod(challenge, p))
-
-                // separator
-                mstore(0x00, challenge)
-                mstore(0x20, mload(PI_Z_Y_LOC))
-                mstore(0x40, mload(PI_Z_X_LOC))
-                mstore(0x60, mload(PI_Z_OMEGA_Y_LOC))
-                mstore(0x80, mload(PI_Z_OMEGA_X_LOC))
-
-                mstore(C_U_LOC, mod(keccak256(0x00, 0xa0), p))
-            }
-
-            // mstore(C_ALPHA_BASE_LOC, mload(C_ALPHA_LOC))
 
             /**
              * COMPUTE LINEARISED OPENING TERMS
@@ -579,31 +601,50 @@ abstract contract BaseStandardVerifier {
                 let zeta := mload(C_ZETA_LOC)
                 let gamma := mload(C_GAMMA_LOC)
                 let alpha := mload(C_ALPHA_LOC)
+
+                // β.ζ = β * ζ
                 let beta_zeta := mulmod(beta, zeta, p)
 
+                // witness_term = a̅ + γ
                 let witness_term := addmod(mload(W1_EVAL_LOC), gamma, p)
+
+                // partial_grand_product = β.ζ + a̅ + γ
                 let partial_grand_product := addmod(beta_zeta, witness_term, p)
+
+                // sigma_multiplier = s̅_σ₁ * β + a̅ + γ
                 let sigma_multiplier := addmod(mulmod(mload(SIGMA1_EVAL_LOC), beta, p), witness_term, p)
+
+                // witness_term = b̅ + γ
                 witness_term := addmod(mload(W2_EVAL_LOC), gamma, p)
+
+                // sigma_multiplier *= s̅_σ₂ * β + b̅ + γ
                 sigma_multiplier :=
                     mulmod(sigma_multiplier, addmod(mulmod(mload(SIGMA2_EVAL_LOC), beta, p), witness_term, p), p)
+
+                // k1_beta_zeta = k1 * β.ζ
                 let k1_beta_zeta := mulmod(0x05, beta_zeta, p)
-                //  partial_grand_product = mulmod( mulmod( partial_grand_product, w2 + k1.beta.zeta + gamma , p), k2.beta.zeta + gamma + w3, p)
-                partial_grand_product :=
-                    mulmod(
-                        mulmod(
-                            partial_grand_product,
-                            addmod(k1_beta_zeta, witness_term, p), // w2 + k1.beta.zeta + gamma
-                            p
-                        ),
-                        addmod(addmod(add(k1_beta_zeta, beta_zeta), gamma, p), mload(W3_EVAL_LOC), p), // k2.beta.zeta + gamma + w3 where k2 = k1+1
-                        p
-                    )
 
-                let linear_challenge := alpha // Owing to the simplified Plonk, nu =1, linear_challenge = nu * alpha = alpha
+                // k1_beta_zeta_witness = k1 * β.ζ + b̅ + γ
+                let k1_beta_zeta_witness := addmod(k1_beta_zeta, witness_term, p)
 
+                // partial_grand_product *= (k1 * β.ζ + b̅ + γ)
+                partial_grand_product := mulmod(partial_grand_product, k1_beta_zeta_witness, p)
+
+                // witness_term = c̅ + γ
+                witness_term := addmod(mload(W3_EVAL_LOC), gamma, p)
+                let k1_bz_bz_witness := addmod(add(k1_beta_zeta, beta_zeta), witness_term, p)
+
+                // partial_grand_product *= ((k1 * β.ζ) + β.ζ + c̅ + γ) // [k2 = k1 + 1]
+                partial_grand_product := mulmod(partial_grand_product, k1_bz_bz_witness, p)
+
+                let linear_challenge := alpha // Owing to the simplified Plonk, nu = 1, linear_challenge = nu * alpha = alpha
+
+                // 0x00-0x40 = [s_σ₃]₁
                 mstore(0x00, mload(SIGMA3_X_LOC))
                 mstore(0x20, mload(SIGMA3_Y_LOC))
+
+                // 0x40 = -((s̅_σ₁ * β + a̅ + γ) * (s̅_σ₂ * β + b̅ + γ) * z̅_ω * β) * α
+                //      = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
                 mstore(
                     0x40,
                     mulmod(
@@ -620,9 +661,15 @@ abstract contract BaseStandardVerifier {
                     let y := mload(Z_Y_LOC)
                     let xx := mulmod(x, x, q)
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
+
+                    // 0x60-0x80 = [z]₁
                     mstore(0x60, x)
                     mstore(0x80, y)
                 }
+
+                // 0xa0 = (partial_grand_product + L_1 * α^2) * α + u
+                // 0xa0 = (((β.ζ + a̅ + γ) * (k1 * β.ζ + b̅ + γ) * (k2 * β.ζ + c̅ + γ)) + L_1 * α^2) * α + u
+                // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
                 mstore(
                     0xa0,
                     addmod(
@@ -635,27 +682,25 @@ abstract contract BaseStandardVerifier {
                         p
                     )
                 )
-                // 0x00 = SIGMA3_X_LOC,
-                // 0x20 = SIGMA3_Y_LOC,
-                // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
-                // 0x60 = Z_X_LOC,
-                // 0x80 = Z_Y_LOC,
-                // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            // Why ACCUMULATOR_X_LOC := ACCUMULATOR_X_LOC + ACCUMULATOR2_X_LOC? Inner parenthesis is executed before?
-                            and(
-                                staticcall(gas(), 7, 0x60, 0x60, ACCUMULATOR_X_LOC, 0x40),
-                                // [ACCUMULATOR_X_LOC, ACCUMULATOR_X_LOC + 0x40) = ((ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u)*[z]_1
-                                staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                            )
-                        )
-                    )
-                // [ACCUMULATOR2_X_LOC, ACCUMULATOR2_X_LOC + 0x40) = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ3]_1
 
+                // 0x00 = [s_σ₃]₁.x,
+                // 0x20 = [s_σ₃]₁.y,
+                // 0x40 = −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω,
+                // 0x60 = [z]₁.x,
+                // 0x80 = [z]₁.y,
+                // 0xa0 = (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u
+
+                // ACCUMULATOR2: −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ₃]₁
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: (ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u * [z]₁
+                success := and(success, staticcall(gas(), 7, 0x60, 0x60, ACCUMULATOR_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                // @note we are storing success flags here for later use. But those above should revert if not successful
+                // so right now this is mainly passing on the check of Z earlier.
                 mstore(GRAND_PRODUCT_SUCCESS_FLAG, success)
             }
 
@@ -666,7 +711,10 @@ abstract contract BaseStandardVerifier {
                 let linear_challenge := mload(C_ARITHMETIC_ALPHA_LOC) // Owing to simplified Plonk, nu = 1,  linear_challenge = C_ARITHMETIC_ALPHA (= alpha^4)
 
                 let t1 := mulmod(mload(W1_EVAL_LOC), linear_challenge, p) // reuse this for QM scalar multiplier
-                // Q1
+
+                /**
+                 * Q1
+                 */
                 mstore(0x00, mload(Q1_X_LOC))
                 mstore(0x20, mload(Q1_Y_LOC))
                 mstore(0x40, t1)
@@ -674,65 +722,62 @@ abstract contract BaseStandardVerifier {
                 // add Q1 scalar mul into grand product scalar mul
                 // Observe that ACCUMULATOR_X_LOC and ACCUMULATOR2_X_LOC are 0x40 bytes apart. Below, ACCUMULATOR2_X_LOC
                 // captures new terms Q1, Q2, and so on and they get accumulated to ACCUMULATOR_X_LOC
-                let success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        // [ACCUMULATOR_X_LOC, ACCUMULATOR_X_LOC + 0x40) = ((ā + βz + γ)( b̄ + βk_1 z + γ)(c̄ + βk_2 z + γ)α + L_1(z)α^3 + u)*[z]_1 −(ā + βs̄_σ1 + γ)( b̄ + βs̄_σ2 + γ)αβz̄_ω * [s_σ3]_1
-                        staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                    )
-                // [ACCUMULATOR2_X_LOC, ACCUMULATOR2_X_LOC + 0x40) = ā * [q_L]_1
+                // ACCUMULATOR2: ā * α^4 * [q_L]_1
+                let success := staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
 
-                // Q2
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * Q2
+                 */
                 mstore(0x00, mload(Q2_X_LOC))
                 mstore(0x20, mload(Q2_Y_LOC))
                 mstore(0x40, mulmod(mload(W2_EVAL_LOC), linear_challenge, p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
 
-                // Q3
+                // ACCUMULATOR2: b̅ * α^4 * [q_R]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * Q3
+                 */
                 mstore(0x00, mload(Q3_X_LOC))
                 mstore(0x20, mload(Q3_Y_LOC))
                 mstore(0x40, mulmod(mload(W3_EVAL_LOC), linear_challenge, p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
 
-                // QM
+                // ACCUMULATOR2: c̅ * α^4 * [q_O]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * QM
+                 */
                 mstore(0x00, mload(QM_X_LOC))
                 mstore(0x20, mload(QM_Y_LOC))
                 mstore(0x40, mulmod(t1, mload(W2_EVAL_LOC), p))
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
 
-                // QC
+                // ACCUMULATOR2: āb̅ * α^4 * [q_M]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * QC
+                 */
                 mstore(0x00, mload(QC_X_LOC))
                 mstore(0x20, mload(QC_Y_LOC))
                 mstore(0x40, linear_challenge)
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
+
+                // ACCUMULATOR2: α^4 * [q_C]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(ARITHMETIC_TERM_SUCCESS_FLAG, success)
             }
@@ -743,222 +788,246 @@ abstract contract BaseStandardVerifier {
             {
                 // previous scalar_multiplier = 1, z^n, z^2n
                 // scalar_multiplier owing to the simplified Plonk = 1 * -Z_H(z), z^n * -Z_H(z), z^2n * -Z_H(z)
-                // VALIDATE T1
+                /**
+                 * VALIDATE T1
+                 */
                 let success
                 {
                     let x := mload(T1_X_LOC)
                     let y := mload(T1_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
                     mstore(0x00, x)
                     mstore(0x20, y)
                     mstore(0x40, sub(p, mload(ZERO_POLY_LOC)))
-                    // mstore(ACCUMULATOR2_X_LOC, x)
-                    // mstore(ACCUMULATOR2_Y_LOC, y)
                 }
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
 
-                // VALIDATE T2
+                // ACCUMULATOR2: - Zh(ζ) * [T_lo]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * VALIDATE T2
+                 */
                 let scalar_multiplier := mload(ZETA_POW_N_LOC)
                 {
                     let x := mload(T2_X_LOC)
                     let y := mload(T2_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mulmod(scalar_multiplier, sub(p, mload(ZERO_POLY_LOC)), p))
 
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: -Zh(ζ) * ζ^n * [T_mid]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
 
-                // VALIDATE T3
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * VALIDATE T3
+                 */
                 {
                     let x := mload(T3_X_LOC)
                     let y := mload(T3_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mulmod(scalar_multiplier, mulmod(scalar_multiplier, sub(p, mload(ZERO_POLY_LOC)), p), p))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
 
-                // VALIDATE W1
+                // ACCUMULATOR2: -Zh(ζ) * ζ^2n * [T_hi]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                // Step 10
+
+                /**
+                 * VALIDATE W1
+                 */
                 {
                     let x := mload(W1_X_LOC)
                     let y := mload(W1_Y_LOC)
                     let xx := mulmod(x, x, q)
+
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V0_LOC))
 
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+                // ACCUMULATOR2: v * [a]_1
+                success := and(success, and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)))
 
-                // VALIDATE W2
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * VALIDATE W2
+                 */
                 {
                     let x := mload(W2_X_LOC)
                     let y := mload(W2_Y_LOC)
                     let xx := mulmod(x, x, q)
+
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V1_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
 
-                // VALIDATE W3
+                // ACCUMULATOR2: v^2 * [b]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * VALIDATE W3
+                 */
                 {
                     let x := mload(W3_X_LOC)
                     let y := mload(W3_Y_LOC)
                     let xx := mulmod(x, x, q)
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
                 mstore(0x40, mload(C_V2_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+
+                // ACCUMULATOR2: v^3 * [c]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(0x00, mload(SIGMA1_X_LOC))
                 mstore(0x20, mload(SIGMA1_Y_LOC))
                 mstore(0x40, mload(C_V3_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+
+                // ACCUMULATOR2: v^4 * [sσ1]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(0x00, mload(SIGMA2_X_LOC))
                 mstore(0x20, mload(SIGMA2_Y_LOC))
                 mstore(0x40, mload(C_V4_LOC))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+
+                // ACCUMULATOR2: v^5 * [sσ2]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
 
                 mstore(BATCH_OPENING_SUCCESS_FLAG, success)
             }
 
             /**
-             * COMPUTE BATCH EVALUATION SCALAR MULTIPLIER
+             * Step 11. COMPUTE BATCH EVALUATION SCALAR MULTIPLIER
              */
             {
+                let v0w1 := mulmod(mload(C_V0_LOC), mload(W1_EVAL_LOC), p)
+                let v1w2 := mulmod(mload(C_V1_LOC), mload(W2_EVAL_LOC), p)
+                let v2w3 := mulmod(mload(C_V2_LOC), mload(W3_EVAL_LOC), p)
+                let v3sig1 := mulmod(mload(C_V3_LOC), mload(SIGMA1_EVAL_LOC), p)
+                let v4sig2 := mulmod(mload(C_V4_LOC), mload(SIGMA2_EVAL_LOC), p)
+                let r0neg := sub(p, mload(R_ZERO_EVAL_LOC)) // Change owing to the simplified Plonk
+                let uzomega := mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p)
+
+                // 0x40 = (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω))
                 mstore(0x00, 0x01) // [1].x
                 mstore(0x20, 0x02) // [1].y
-                // Yul stack optimizer doing some work here...
+
                 mstore(
                     0x40,
                     sub(
                         p,
                         addmod(
-                            mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p),
+                            uzomega,
                             addmod(
-                                sub(p, mload(R_ZERO_EVAL_LOC)), // Change owing to the simplified Plonk
-                                addmod(
-                                    mulmod(mload(C_V4_LOC), mload(SIGMA2_EVAL_LOC), p),
-                                    addmod(
-                                        mulmod(mload(C_V3_LOC), mload(SIGMA1_EVAL_LOC), p),
-                                        addmod(
-                                            mulmod(mload(C_V2_LOC), mload(W3_EVAL_LOC), p),
-                                            addmod(
-                                                mulmod(mload(C_V1_LOC), mload(W2_EVAL_LOC), p),
-                                                mulmod(mload(C_V0_LOC), mload(W1_EVAL_LOC), p),
-                                                p
-                                            ),
-                                            p
-                                        ),
-                                        p
-                                    ),
-                                    p
-                                ),
-                                p
+                                r0neg, addmod(v4sig2, addmod(v3sig1, addmod(v2w3, addmod(v1w2, v0w1, p), p), p), p), p
                             ),
                             p
                         )
                     )
                 )
 
-                let success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                        staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                    )
+                // ACCUMULATOR2 = [1] * (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω))
+                // ACCUMULATOR2 = -[E]
+                let success := staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
+
+                // ACCUMULATOR = ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
                 mstore(OPENING_COMMITMENT_SUCCESS_FLAG, success)
             }
 
             /**
-             * PERFORM PAIRING PREAMBLE
+             * Step 12: PERFORM PAIRING PREAMBLE
              */
             {
                 let u := mload(C_U_LOC)
                 let zeta := mload(C_ZETA_LOC)
                 let success
-                // VALIDATE PI_Z
+
+                /**
+                 * VALIDATE PI_Z
+                 */
                 {
                     let x := mload(PI_Z_X_LOC)
                     let y := mload(PI_Z_Y_LOC)
                     let xx := mulmod(x, x, q)
+
+                    // validate on curve
                     success := eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
-                // compute zeta.[PI_Z] and add into accumulator
                 mstore(0x40, zeta)
-                success :=
-                    and(
-                        success,
-                        and(
-                            staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40),
-                            staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40)
-                        )
-                    )
 
-                // VALIDATE PI_Z_OMEGA
+                // compute zeta.[PI_Z] and add into accumulator
+                // ACCUMULATOR2: ζ * [Wζ]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, ACCUMULATOR_X_LOC, 0x40))
+
+                /**
+                 * VALIDATE PI_Z_OMEGA
+                 */
                 {
                     let x := mload(PI_Z_OMEGA_X_LOC)
                     let y := mload(PI_Z_OMEGA_Y_LOC)
                     let xx := mulmod(x, x, q)
+
+                    // validate on curve
                     success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                     mstore(0x00, x)
                     mstore(0x20, y)
                 }
+
                 // compute u.zeta.omega.[PI_Z_OMEGA] and add into accumulator
                 mstore(0x40, mulmod(mulmod(u, zeta, p), mload(OMEGA_LOC), p))
-                success :=
-                    and(
-                        staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, PAIRING_RHS_X_LOC, 0x40),
-                        and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
-                    )
+
+                // ACCUMULATOR2: u * ζ * ω * [Wζω]_1
+                success := and(success, staticcall(gas(), 7, 0x00, 0x60, ACCUMULATOR2_X_LOC, 0x40))
+
+                // ACCUMULATOR: ACCUMULATOR + ACCUMULATOR2
+                success := and(success, staticcall(gas(), 6, ACCUMULATOR_X_LOC, 0x80, PAIRING_RHS_X_LOC, 0x40))
 
                 mstore(0x00, mload(PI_Z_X_LOC))
                 mstore(0x20, mload(PI_Z_Y_LOC))
@@ -970,15 +1039,20 @@ abstract contract BaseStandardVerifier {
                         staticcall(gas(), 6, 0x00, 0x80, PAIRING_LHS_X_LOC, 0x40),
                         and(success, staticcall(gas(), 7, 0x40, 0x60, 0x40, 0x40))
                     )
+
                 // negate lhs y-coordinate
                 mstore(PAIRING_LHS_Y_LOC, sub(q, mload(PAIRING_LHS_Y_LOC)))
 
                 if mload(CONTAINS_RECURSIVE_PROOF_LOC) {
-                    // VALIDATE RECURSIVE P1
+                    /**
+                     * VALIDATE RECURSIVE P1
+                     */
                     {
                         let x := mload(RECURSIVE_P1_X_LOC)
                         let y := mload(RECURSIVE_P1_Y_LOC)
                         let xx := mulmod(x, x, q)
+
+                        // validate on curve
                         success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                         mstore(0x00, x)
                         mstore(0x20, y)
@@ -987,15 +1061,21 @@ abstract contract BaseStandardVerifier {
                     // compute u.u.[recursive_p1] and write into 0x60
                     mstore(0x40, mulmod(u, u, p))
                     success := and(success, staticcall(gas(), 7, 0x00, 0x60, 0x60, 0x40))
-                    // VALIDATE RECURSIVE P2
+
+                    /**
+                     * VALIDATE RECURSIVE P2
+                     */
                     {
                         let x := mload(RECURSIVE_P2_X_LOC)
                         let y := mload(RECURSIVE_P2_Y_LOC)
                         let xx := mulmod(x, x, q)
+
+                        // validate on curve
                         success := and(success, eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)))
                         mstore(0x00, x)
                         mstore(0x20, y)
                     }
+
                     // compute u.u.[recursive_p2] and write into 0x00
                     // 0x40 still contains u*u
                     success := and(success, staticcall(gas(), 7, 0x00, 0x60, 0x00, 0x40))

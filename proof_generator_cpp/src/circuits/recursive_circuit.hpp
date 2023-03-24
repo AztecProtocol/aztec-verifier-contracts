@@ -40,7 +40,7 @@ class RecursiveCircuit
 
         // @note For some reason, if we don't have this line, the circuit fails to verify.
         auto c_sq = c * c;
-
+        
         c.assert_equal(a + b);
     };
 
@@ -76,6 +76,7 @@ class RecursiveCircuit
         }
 
         const auto verification_key_native = inner_composer.compute_verification_key();
+
         // Convert the verification key's elements into _circuit_ types, using the OUTER composer.
         std::shared_ptr<verification_key_pt> verification_key = verification_key_pt::from_witness(&outer_composer, verification_key_native);
 
@@ -138,21 +139,6 @@ public:
             throw std::runtime_error("outer composer failed");
         }
 
-        // info("composer gates = ", outer_composer.get_num_gates());
-
         return outer_composer;
-        /*
-                auto prover = outer_composer.create_prover();
-                auto verifier = outer_composer.create_verifier();
-
-                waffle::plonk_proof proof = prover.construct_proof();
-
-                bool result = verifier.verify_proof(proof);
-
-                if (result == false) {
-                    throw std::runtime_error("outer proof verification failed");
-                }
-
-                return proof;*/
     }
 };

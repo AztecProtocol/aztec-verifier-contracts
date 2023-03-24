@@ -46,11 +46,8 @@ void generate_keys(std::string output_path, std::string srs_path, std::string fl
 /*
  * @brief Main entry point for the verification key generator
  *
- * 1. proof_flavour: standard, ultra
- * 2. circuit_flavour: blake, add2
- * 3. public_inputs: comma separated list of public inputs
- * 4. project_root_path: path to the solidity project root
- * 5. srs_path: path to the srs db
+ * 1. project_root_path: path to the solidity project root
+ * 2. srs_path: path to the srs db
  */
 int main(int argc, char **argv)
 {

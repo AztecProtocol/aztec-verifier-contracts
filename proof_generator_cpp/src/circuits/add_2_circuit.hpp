@@ -13,14 +13,13 @@ public:
     typedef plonk::stdlib::public_witness_t<Composer> public_witness_ct;
     typedef plonk::stdlib::witness_t<Composer> witness_ct;
 
-    // Two public input, one private input
+    // Three public inputs
     static Composer generate(std::string srs_path, uint256_t inputs[])
     {
-        // TODO: assert input lengths
 
         Composer composer(srs_path);
 
-        field_ct a(witness_ct(&composer, inputs[0]));
+        field_ct a(public_witness_ct(&composer, inputs[0]));
         field_ct b(public_witness_ct(&composer, inputs[1]));
         field_ct c(public_witness_ct(&composer, inputs[2]));
         c.assert_equal(a + b);

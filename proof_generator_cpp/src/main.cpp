@@ -41,7 +41,7 @@ std::string pad_left(std::string input, size_t length)
 
 /**
  * @brief Main entry point for the proof generator.
- * expected inputs
+ * Expected inputs:
  * 1. proof_flavour: standard, ultra
  * 2. circuit_flavour: blake, add2, recursive (only for ultra)
  * 3. public_inputs: comma separated list of public inputs
@@ -61,7 +61,6 @@ int main(int argc, char **argv)
     // @todo dynamically allocate this
     uint256_t inputs[] = {0, 0, 0, 0, 0};
 
-    // equiv public_inputs = string_input.split(",")
     // Ran into issues with the old way of splitting strings. Used this to get around edge cases
     size_t count = 0;
     std::stringstream s_stream(string_input); // create string stream from the string
