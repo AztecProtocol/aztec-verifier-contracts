@@ -158,8 +158,6 @@ abstract contract BaseStandardVerifier {
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
         // @note - The order of the checks in this implementation differs from the paper to save gas.
-        // @todo - Add the ordering in here.
-
         uint256 requiredPublicInputCount;
         assembly {
             requiredPublicInputCount := mload(NUM_INPUTS_LOC)
@@ -370,10 +368,6 @@ abstract contract BaseStandardVerifier {
              */
 
             /**
-             * @follow-up The values for σ and σ' need some elaboration. I don't understand where they come from, mostly σ.
-             * @todo Make clearer what this is doing and why such that readers get the reasoning behind it.
-             */
-            /**
              * COMPUTE PUBLIC INPUT DELTA * In the permutation argument, we will be generating a residual term from the public inputs. This will impact `r_0`.
              *
              * In the Plonk paper (https://eprint.iacr.org/2019/953.pdf), the public inputs are included by altering a selector
@@ -579,7 +573,6 @@ abstract contract BaseStandardVerifier {
                 // @note that our r_0 looks different from the paper.
                 // This related to the public input delta that we mentioned earlier.
                 // So we are replacing PI with (z̄_ω - ∆PI) * L_n * α^2.
-                // @follow-up Elaborate on this replacement
                 // @note that our r_0 differs on the power of alpha from the paper. The alpha is a challenge
                 // so having a different challenge is fine, as long as both verifier and prover use the same.
 
@@ -713,7 +706,6 @@ abstract contract BaseStandardVerifier {
 
             /**
              * COMPUTE ARITHMETIC SELECTOR OPENING GROUP ELEMENT
-             * @follow-up Elaborate on naming to easily match with the paper (part of step 9?)
              */
             {
                 let linear_challenge := mload(C_ARITHMETIC_ALPHA_LOC) // Owing to simplified Plonk, nu = 1,  linear_challenge = C_ARITHMETIC_ALPHA (= alpha^4)
@@ -954,14 +946,13 @@ abstract contract BaseStandardVerifier {
                 let v2w3 := mulmod(mload(C_V2_LOC), mload(W3_EVAL_LOC), p)
                 let v3sig1 := mulmod(mload(C_V3_LOC), mload(SIGMA1_EVAL_LOC), p)
                 let v4sig2 := mulmod(mload(C_V4_LOC), mload(SIGMA2_EVAL_LOC), p)
-                let r0neg := sub(p, mload(R_ZERO_EVAL_LOC)) // Change owing to the simplified Plonk @follow-up
+                let r0neg := sub(p, mload(R_ZERO_EVAL_LOC)) // Change owing to the simplified Plonk
                 let uzomega := mulmod(mload(C_U_LOC), mload(Z_OMEGA_EVAL_LOC), p)
 
                 // 0x40 = (p - (−r0 + v ̄a + v2 ̄b + v3 ̄c +v4 ̄sσ1 + v5 ̄sσ2 + u ̄zω))
                 mstore(0x00, 0x01) // [1].x
                 mstore(0x20, 0x02) // [1].y
 
-                // Yul stack optimizer doing some work here...
                 mstore(
                     0x40,
                     sub(
