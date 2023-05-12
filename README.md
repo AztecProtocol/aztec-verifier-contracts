@@ -1,5 +1,9 @@
 # Aztec Verifier Contract Test
 
+> This code have been moved to [barretenberg/sol](https://github.com/AztecProtocol/barretenberg/tree/master/sol).
+
+---
+
 This repository contains multiple verifier contracts and testing harnesses that are used by [Noir, our Zero-Knowledge Programming Language](https://github.com/noir-lang/noir).
 
 The implementations maintain the same interface, regardless of the verifier flavour (Standard, Turbo, Ultra), this should enable upstream implementations to be "plug-and-play".
